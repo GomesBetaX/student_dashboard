@@ -1,0 +1,256 @@
+<div class="container-fluid py-4">
+  <!-- Capa personalizável -->
+  <div class="position-relative rounded-4 overflow-hidden mb-4" style="height: 220px;">
+    <!-- Imagem de capa (inicialmente invisível) -->
+    <img id="coverPic" 
+        src="assets/cover-placeholder.png" 
+        class="w-100 h-100 object-fit-cover position-absolute top-0 start-0 d-none"
+        alt="Capa do perfil"
+        style="filter: brightness(0.7);">
+    
+    <!-- Gradiente de fallback -->
+    <div id="coverGradient" 
+        class="w-100 h-100 position-absolute top-0 start-0"
+        style="background: linear-gradient(135deg, #4361ee, #3a0ca3);">
+    </div>
+    
+    <!-- Overlay decorativo -->
+    <div class="position-absolute top-0 start-0 w-100 h-100" 
+        style="background: radial-gradient(circle at top right, rgba(255,255,255,0.1), transparent 30%);">
+    </div>
+    
+    <!-- Botão de upload -->
+    <label for="coverUpload" 
+          class="btn btn-light btn-sm position-absolute bottom-2 end-2 shadow-sm rounded-pill px-3 py-1">
+      <i class="bi bi-camera"></i> Trocar capa
+    </label>
+    
+    <!-- Input de arquivo escondido -->
+    <input type="file" id="coverUpload" accept="image/*" class="d-none">
+  </div>
+
+  <!-- Foto de perfil centralizada -->
+  <div class="d-flex justify-content-center position-relative" style="margin-top: -80px;">
+    <div class="text-center">
+      <!-- Foto com borda brilhante -->
+      <div class="position-relative d-inline-block" style="cursor: pointer;">
+        <img src="assets/profile-placeholder.jpg" 
+             id="profilePicAluno" 
+             alt="Foto do aluno" 
+             class="rounded-circle border border-5 border-white shadow-lg" 
+             width="140" height="140" 
+             style="object-fit: cover;">
+        <div class="position-absolute top-0 start-0 w-100 h-100 rounded-circle border border-2 border-primary" style="box-shadow: 0 0 0 3px rgba(67, 97, 238, 0.4); pointer-events: none;"></div>
+      </div>
+
+      <!-- Nome e cargo -->
+      <h3 id="profileNameAluno" class="mt-3 fw-bold text-dark">Carregando...</h3>
+      <p class="text-muted mb-0">Aluno</p>
+    </div>
+  </div>
+
+  <!-- Informações do perfil -->
+  <div class="row justify-content-center mt-4">
+    <div class="col-lg-8">
+      <!-- Card de informações básicas -->
+      <div class="card border-0 shadow-xl rounded-4 overflow-hidden mb-4">
+        <div class="card-body p-5">
+          <h5 class="fw-bold text-primary mb-4 d-flex align-items-center">
+            <i class="bi bi-person me-2"></i> Informações Pessoais
+          </h5>
+          
+          <div class="row g-3">
+            <div class="col-md-6">
+              <div class="d-flex align-items-center p-3 bg-light rounded-3">
+                <div class="bg-primary-subtle p-2 rounded-circle me-3">
+                  <i class="bi bi-123 text-primary fs-4"></i>
+                </div>
+                <div>
+                  <h6 class="mb-0 text-muted small">CTR</h6>
+                  <p id="ctrAluno" class="mb-0 fw-medium">-</p>
+                </div>
+              </div>
+            </div>
+            
+            <div class="col-md-6">
+              <div class="d-flex align-items-center p-3 bg-light rounded-3">
+                <div class="bg-success-subtle p-2 rounded-circle me-3">
+                  <i class="bi bi-person-badge text-success fs-4"></i>
+                </div>
+                <div>
+                  <h6 class="mb-0 text-muted small">Status</h6>
+                  <p id="statusAluno" class="mb-0 fw-medium">-</p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      
+      <!-- Card de turmas -->
+      <div class="card border-0 shadow-xl rounded-4 overflow-hidden mb-4">
+        <div class="card-body p-5">
+          <h5 class="fw-bold text-primary mb-4 d-flex align-items-center">
+            <i class="bi bi-people me-2"></i> Minhas Turmas
+          </h5>
+          
+          <div id="turmasAlunoContainer" class="row g-3">
+            <!-- As turmas serão carregadas aqui dinamicamente -->
+            <div class="col-12 text-center py-4">
+              <div class="spinner-border text-primary" role="status">
+                <span class="visually-hidden">Carregando...</span>
+              </div>
+              <p class="mt-2 text-muted">Carregando suas turmas...</p>
+            </div>
+          </div>
+        </div>
+      </div>
+      
+      <!-- Card de frequência -->
+      <div class="card border-0 shadow-xl rounded-4 overflow-hidden mb-4">
+        <div class="card-body p-5">
+          <h5 class="fw-bold text-primary mb-4 d-flex align-items-center">
+            <i class="bi bi-calendar-check me-2"></i> Minha Frequência
+          </h5>
+          
+          <div class="row g-4">
+            <div class="col-md-4">
+              <div class="card border-0 shadow-sm h-100">
+                <div class="card-body p-3">
+                  <div class="d-flex align-items-center">
+                    <div class="bg-success-subtle rounded-circle p-2 me-3">
+                      <i class="bi bi-people text-success"></i>
+                    </div>
+                    <div>
+                      <h6 class="text-muted mb-0 small">Frequência atual</h6>
+                      <p id="frequenciaAtual" class="mb-0 fw-medium">-</p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div class="col-md-4">
+              <div class="card border-0 shadow-sm h-100">
+                <div class="card-body p-3">
+                  <div class="d-flex align-items-center">
+                    <div class="bg-success-subtle rounded-circle p-2 me-3">
+                      <i class="bi bi-calendar-check text-success"></i>
+                    </div>
+                    <div>
+                      <h6 class="text-muted mb-0 small">Meses Registrados</h6>
+                      <p id="mesesRegistrados" class="mb-0 fw-medium">-</p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+            
+            <div class="col-md-4">
+              <div class="card border-0 shadow-sm h-100">
+                <div class="card-body p-3">
+                  <div class="d-flex align-items-center">
+                    <div class="bg-info-subtle rounded-circle p-2 me-3">
+                      <i class="bi bi-person-check text-info"></i>
+                    </div>
+                    <div>
+                      <h6 class="text-muted mb-0 small">Status</h6>
+                      <p id="statusFrequencia" class="mb-0 fw-medium">-</p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Card de Equipamentos -->
+      <div class="card border-0 shadow-xl rounded-4 overflow-hidden mb-4">
+        <div class="card-body p-5">
+          <h5 class="fw-bold text-primary mb-4 d-flex align-items-center">
+            <i class="bi bi-backpack me-2"></i> Meus Equipamentos
+          </h5>
+
+          <div class="d-flex justify-content-between align-items-center mb-4">
+            <span class="badge bg-warning text-dark fs-5 px-3 py-2">
+              <i class="bi bi-coin"></i> <span id="goldAluno">0</span> golds
+            </span>
+            <button class="btn btn-outline-primary btn-sm" id="btnAbrirMochilaAluno">
+              <i class="bi bi-backpack"></i> Minha Mochila
+            </button>
+          </div>
+
+          <div class="row g-4">
+            <!-- Slot: Cabeça -->
+            <div class="col-6 col-md-2 text-center">
+              <div class="equip-slot rounded-3 bg-light d-flex flex-column align-items-center justify-content-center p-3 shadow-sm" data-slot="cabeca">
+                <div class="fs-2 mb-1">🧢</div>
+                <small class="text-muted">Cabeça</small>
+              </div>
+            </div>
+            <!-- Camisa -->
+            <div class="col-6 col-md-2 text-center">
+              <div class="equip-slot rounded-3 bg-light d-flex flex-column align-items-center justify-content-center p-3 shadow-sm" data-slot="camisa">
+                <div class="fs-2 mb-1">👕</div>
+                <small class="text-muted">Camisa</small>
+              </div>
+            </div>
+            <!-- Calça -->
+            <div class="col-6 col-md-2 text-center">
+              <div class="equip-slot rounded-3 bg-light d-flex flex-column align-items-center justify-content-center p-3 shadow-sm" data-slot="calca">
+                <div class="fs-2 mb-1">👖</div>
+                <small class="text-muted">Calça</small>
+              </div>
+            </div>
+            <!-- Pés -->
+            <div class="col-6 col-md-2 text-center">
+              <div class="equip-slot rounded-3 bg-light d-flex flex-column align-items-center justify-content-center p-3 shadow-sm" data-slot="pes">
+                <div class="fs-2 mb-1">👟</div>
+                <small class="text-muted">Pés</small>
+              </div>
+            </div>
+            <!-- Artefato -->
+            <div class="col-6 col-md-2 text-center">
+              <div class="equip-slot rounded-3 bg-light d-flex flex-column align-items-center justify-content-center p-3 shadow-sm" data-slot="artefato">
+                <div class="fs-2 mb-1">✨</div>
+                <small class="text-muted">Artefato</small>
+              </div>
+            </div>
+            <!-- Poder Total -->
+            <div class="col-6 col-md-2 text-center">
+              <div class="rounded-3 bg-gradient-primary d-flex flex-column align-items-center justify-content-center p-3 text-white shadow-sm">
+                <div class="fs-2 mb-1">⚡</div>
+                <small>Poder</small>
+                <strong id="poderTotal">0</strong>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Modal da Mochila do Aluno -->
+<div class="modal fade" id="modalMochilaAluno" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered modal-lg">
+    <div class="modal-content rounded-4">
+      <div class="modal-header border-0 pb-0">
+        <h5 class="modal-title fw-bold">Minha Mochila</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body pt-0">
+        <p class="text-muted mb-2">
+          <i class="bi bi-coin"></i> <span id="goldMochila">0</span> gold
+        </p>
+        <div class="row g-3" id="itensMochilaAluno">
+          <!-- Itens carregados aqui -->
+        </div>
+      </div>
+      <div class="modal-footer border-0">
+        <button type="button" class="btn btn-secondary rounded-pill" data-bs-dismiss="modal">Fechar</button>
+      </div>
+    </div>
+  </div>
+</div>

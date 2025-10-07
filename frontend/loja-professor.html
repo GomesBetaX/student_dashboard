@@ -1,0 +1,72 @@
+<!-- loja-professor.html -->
+<div class="container-fluid py-4">
+  <div>
+    <h1 class="display-6 fw-bold mb-1" style="color: #2c3e50;">🏪 Loja de Itens</h1>
+    <p class="text-muted mb-3">Criação e visualização de itens criados.</p>
+  </div>
+
+  <h3 class="mb-4">Criar Novo Item</h2>
+
+  <div class="card border-0 shadow-xl rounded-4 p-4 mb-4">
+    <form id="formCriarItem">
+      <div class="mb-3">
+        <label class="form-label">Nome do Item</label>
+        <input type="text" class="form-control" id="nomeItem" required>
+      </div>
+      <div class="mb-3">
+        <label class="form-label">Descrição</label>
+        <textarea class="form-control" id="descricaoItem" rows="2" required></textarea>
+      </div>
+      <div class="mb-3">
+        <label class="form-label">Efeito (bônus descritivo)</label>
+        <input type="text" class="form-control" id="efeitoItem" placeholder="Ex: +10% de foco, resistência a faltas..." required>
+      </div>
+      <div class="mb-3">
+        <label class="form-label">Slot</label>
+        <select class="form-select" id="slotItem" required>
+          <option value="cabeca">Cabeça</option>
+          <option value="camisa">Camisa</option>
+          <option value="calca">Calça</option>
+          <option value="pes">Pés</option>
+          <option value="artefato">Artefato</option>
+        </select>
+      </div>
+      <div class="mb-3">
+        <label class="form-label">Power (número)</label>
+        <input type="number" class="form-control" id="powerItem" min="1" required>
+      </div>
+      <div class="mb-3">
+        <label class="form-label">Ícone (imagem)</label>
+        <input type="file" class="form-control" id="iconeItem" accept="image/*" required>
+        <div id="previewIcone" class="mt-2" style="max-width: 100px;"></div>
+      </div>
+      <div class="mb-3">
+        <label class="form-label">Preço em gold (opcional, padrão = power × 10)</label>
+        <input type="number" class="form-control" id="precoItem" min="1" placeholder="Ex: 50">
+      </div>
+      <button type="submit" class="btn btn-primary">Criar Item</button>
+    </form>
+  </div>
+
+  <h4>Itens Criados</h4>
+  <div id="listaItens" class="row g-3 mt-2"></div>
+</div>
+
+<!-- Modal da Mochila (para adicionar itens) -->
+<div class="modal fade" id="modalMochilaLoja" tabindex="-1">
+  <div class="modal-dialog modal-dialog-centered modal-lg">
+    <div class="modal-content rounded-4">
+      <div class="modal-header border-0 pb-0">
+        <h5 class="modal-title fw-bold">Minha Mochila</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body pt-0">
+        <div class="row g-3" id="itensMochilaLoja"></div>
+      </div>
+      <div class="modal-footer border-0">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Fechar</button>
+      </div>
+    </div>
+  </div>
+</div>
+<!-- <script src="loja-professor.js"></script> -->

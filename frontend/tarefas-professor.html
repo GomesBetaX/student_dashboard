@@ -1,0 +1,116 @@
+<!-- tarefas-professor.html -->
+<div class="container-fluid py-4">
+  <!-- Cabeçalho -->
+  <div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+      <h1 class="display-6 fw-bold mb-1" style="color: #2c3e50;">📋 Tarefas</h1>
+      <p class="text-muted mb-0">Tarefas designadas às turmas.</p>
+    </div>
+    <button class="btn btn-primary btn-lg rounded-pill shadow-sm" id="btnNovaTarefa">
+      <i class="bi bi-plus-circle me-2"></i> Nova Tarefa
+    </button>
+  </div>
+
+  <!-- Filtros -->
+  <div class="d-flex gap-2 mb-4">
+    <button class="btn btn-outline-primary btn-sm rounded-pill active" data-filter="all">Todas</button>
+    <button class="btn btn-outline-success btn-sm rounded-pill" data-filter="active">Ativas</button>
+    <button class="btn btn-outline-secondary btn-sm rounded-pill" data-filter="completed">Concluídas</button>
+  </div>
+
+  <!-- Lista de Tarefas -->
+  <div id="listaTarefas" class="row g-4">
+    <!-- As tarefas serão carregadas dinamicamente aqui -->
+  </div>
+
+  <!-- Modal: Nova Tarefa -->
+  <div class="modal fade" id="modalTarefa" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered">
+      <div class="modal-content">
+        <div class="modal-header bg-gradient-primary text-white">
+          <h5 class="modal-title" id="modalTitle">Nova Tarefa</h5>
+          <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+        </div>
+        <div class="modal-body">
+          <div class="mb-3">
+            <label class="form-label fw-bold">Título *</label>
+            <input type="text" class="form-control form-control-lg" id="tituloTarefa" placeholder="Ex: Ler capítulo 5">
+          </div>
+          <div class="mb-3">
+            <label class="form-label fw-bold">Descrição (opcional)</label>
+            <textarea class="form-control" id="descricaoTarefa" rows="3" placeholder="Detalhes da tarefa..."></textarea>
+          </div>
+          <div class="mb-3">
+            <label class="form-label fw-bold">Prazo (opcional)</label>
+            <input type="date" class="form-control" id="prazoTarefa">
+          </div>
+          <div class="mb-3">
+            <label class="form-label fw-bold">Turmas *</label>
+            <select class="form-select" id="turmasTarefa" multiple size="4" required>
+              <!-- As turmas serão carregadas dinamicamente -->
+            </select>
+            <div class="form-text">Selecione pelo menos uma turma.</div>
+          </div>
+
+          <div class="mb-3">
+            <label class="form-label fw-bold">Recompensa em Golds (opcional)</label>
+            <div class="input-group">
+              <span class="input-group-text">🪙</span>
+              <input type="number" class="form-control" id="recompensaTarefa" min="0" placeholder="Ex: 50" value="0">
+            </div>
+            <div class="form-text">Quantidade de golds que o aluno receberá ao entregar a tarefa corretamente.</div>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+          <button type="button" class="btn btn-primary" id="btnSalvarTarefa">Salvar Tarefa</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal: Alunos da Tarefa -->
+  <div class="modal fade" id="modalAlunosTarefa" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered modal-lg">
+      <div class="modal-content">
+        <div class="modal-header bg-gradient-primary text-white">
+          <h5 class="modal-title">Alunos - <span id="tituloTarefaModal"></span></h5>
+          <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+        </div>
+        <div class="modal-body">
+          <div class="table-responsive">
+            <table class="table table-hover">
+              <thead class="table-light">
+                <tr>
+                  <th>CTR</th>
+                  <th>Nome</th>
+                  <th>Status</th>
+                  <th>Data de Entrega</th>
+                  <th>Ações</th>
+                </tr>
+              </thead>
+              <tbody id="listaAlunosTarefa">
+                <!-- Será preenchido dinamicamente -->
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Modal: Visualizar Foto -->
+<div class="modal fade" id="modalVerFoto" tabindex="-1">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title">Foto da Entrega</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body text-center">
+        <img id="fotoGrande" src="" class="img-fluid" style="max-height: 80vh; object-fit: contain;">
+      </div>
+    </div>
+  </div>
+</div>

@@ -1,0 +1,206 @@
+<div class="container-fluid py-4">
+  <div class="row g-4">
+    <!-- Título -->
+    <div class="col-12 mb-3">
+      <div class="d-flex justify-content-between align-items-center">
+        <div>
+          <h1 class="display-6 fw-bold mb-1" style="color: #2c3e50;">📊 Frequência</h1>
+          <p class="text-muted mb-0">Monitoramento em tempo real da frequência dos alunos</p>
+        </div>
+      </div>
+    </div>
+    
+    <!-- Cards de Resumo -->
+    <div class="col-md-4">
+      <div class="card border-0 shadow-sm h-100 hover-shadow" style="border-radius: 12px; overflow: hidden; transition: transform 0.2s;">
+        <div class="card-body p-4" style="background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);">
+          <div class="d-flex align-items-center mb-3">
+            <div class="bg-primary rounded-3 p-3 me-3" style="background-color: rgba(52, 152, 219, 0.15) !important;">
+              <i class="bi bi-people fs-4 text-primary" style="opacity: 0.9;"></i>
+            </div>
+            <div>
+              <h6 class="text-muted mb-1 fw-normal" style="font-size: 0.85rem; letter-spacing: 0.5px;">TOTAL DE ALUNOS</h6>
+              <h2 class="fw-bold mb-0" id="totalAlunos" style="font-size: 2.2rem; color: #2c3e50;">0</h2>
+            </div>
+          </div>
+          <div class="d-flex align-items-center mt-3 pt-3 border-top" style="border-color: rgba(0,0,0,0.05) !important;">
+            <span class="badge bg-light text-dark border me-2" style="font-weight: 500; font-size: 0.75rem;">ATIVOS</span>
+            <span class="text-muted small" style="font-size: 0.8rem;">Dados atualizados em tempo real</span>
+          </div>
+        </div>
+      </div>
+    </div>
+    
+    <div class="col-md-4">
+      <div class="card border-0 shadow-sm h-100 hover-shadow" style="border-radius: 12px; overflow: hidden; transition: transform 0.2s;">
+        <div class="card-body p-4" style="background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);">
+          <div class="d-flex align-items-center mb-3">
+            <div class="bg-success rounded-3 p-3 me-3" style="background-color: rgba(46, 204, 113, 0.15) !important;">
+              <i class="bi bi-journal-bookmark fs-4 text-success" style="opacity: 0.9;"></i>
+            </div>
+            <div>
+              <h6 class="text-muted mb-1 fw-normal" style="font-size: 0.85rem; letter-spacing: 0.5px;">TOTAL DE TURMAS</h6>
+              <h2 class="fw-bold mb-0" id="totalTurmas" style="font-size: 2.2rem; color: #2c3e50;">0</h2>
+            </div>
+          </div>
+          <div class="d-flex align-items-center mt-3 pt-3 border-top" style="border-color: rgba(0,0,0,0.05) !important;">
+            <span class="badge bg-light text-dark border me-2" style="font-weight: 500; font-size: 0.75rem;">ATIVAS</span>
+            <span class="text-muted small" style="font-size: 0.8rem;">Inclui apenas turmas em andamento</span>
+          </div>
+        </div>
+      </div>
+    </div>
+    
+    <div class="col-md-4">
+      <div class="card border-0 shadow-sm h-100 hover-shadow" style="border-radius: 12px; overflow: hidden; transition: transform 0.2s;">
+        <div class="card-body p-4" style="background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);">
+          <div class="d-flex align-items-center mb-3">
+            <div class="bg-info rounded-3 p-3 me-3" style="background-color: rgba(52, 152, 219, 0.15) !important;">
+              <i class="bi bi-person-check fs-4 text-info" style="opacity: 0.9;"></i>
+            </div>
+            <div>
+              <h6 class="text-muted mb-1 fw-normal" style="font-size: 0.85rem; letter-spacing: 0.5px;">ALUNOS FREQUENTES</h6>
+              <h2 class="fw-bold mb-0" id="alunosFrequentes" style="font-size: 2.2rem; color: #2c3e50;">0</h2>
+            </div>
+          </div>
+          <div class="d-flex align-items-center mt-3 pt-3 border-top" style="border-color: rgba(0,0,0,0.05) !important;">
+            <span class="badge bg-light text-dark border me-2" style="font-weight: 500; font-size: 0.75rem;">ATUAIS</span>
+            <span class="text-muted small" style="font-size: 0.8rem;">Percentual calculado automaticamente</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Card com Gráfico de Frequência -->
+    <div class="col-md-12">
+      <div class="card border-0 shadow-sm" style="border-radius: 12px; overflow: hidden;">
+        <div class="card-header bg-white border-0 py-3 px-4" style="border-bottom: 1px solid rgba(0,0,0,0.05) !important;">
+          <div class="d-flex justify-content-between align-items-center">
+            <h5 class="card-title fw-bold mb-0" style="color: #2c3e50; font-size: 1.25rem;">Análise de Frequência Mensal</h5>
+          </div>
+        </div>
+        <div class="card-body p-4">
+          <div class="row align-items-center">
+            <div class="col-md-6">
+              <div class="d-flex justify-content-center align-items-center" style="height: 220px;">
+                <div class="position-relative" style="width: 180px; height: 180px;">
+                  <canvas id="graficoFrequencia" width="180" height="180"></canvas>
+                  <div class="position-absolute top-50 start-50 translate-middle text-center">
+                    <h3 class="fw-bold mb-0" id="pF" style="font-size: 2rem; color: #2c3e50;">0%</h3>
+                    <small class="text-muted">atual</small>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div class="col-md-6">
+              <div class="mb-4">
+                <h6 class="text-muted mb-3 fw-normal" style="font-size: 0.9rem; letter-spacing: 0.5px;">DESEMPENHO MENSAL</h6>
+                <div class="d-flex justify-content-between mb-2">
+                  <span>Meta mínima</span>
+                  <span class="fw-bold">70%</span>
+                </div>
+                <div class="progress" style="height: 10px; border-radius: 5px;">
+                  <div class="progress-bar bg-success" role="progressbar" id="barraFrequencia" style="width: 0%; border-radius: 5px;"></div>
+                </div>
+              </div>
+              <div class="row g-3">
+                <div class="col-6">
+                  <div class="d-flex align-items-center">
+                    <span class="rounded-circle me-2" style="width: 12px; height: 12px; background-color: #4caf50;"></span>
+                    <div>
+                      <h6 class="mb-0 fw-bold" id="alunosF">0</h6>
+                      <small class="text-muted">Alunos frequentes</small>
+                    </div>
+                  </div>
+                </div>
+                <div class="col-6">
+                  <div class="d-flex align-items-center">
+                    <span class="rounded-circle me-2" style="width: 12px; height: 12px; background-color: #f44336;"></span>
+                    <div>
+                      <h6 class="mb-0 fw-bold" id="alunosInfrequentesCount">0</h6>
+                      <small class="text-muted">Alunos infrequentes</small>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    
+    <!-- Card de Histórico -->
+    <div class="col-md-12">
+      <div class="card border-0 shadow-sm h-100" style="border-radius: 12px; overflow: hidden;">
+        <div class="card-header bg-white border-0 py-3 px-4" style="border-bottom: 1px solid rgba(0,0,0,0.05) !important;">
+          <div class="d-flex justify-content-between align-items-center">
+            <h5 class="card-title fw-bold mb-0" style="color: #2c3e50; font-size: 1.25rem;">Histórico de Frequências</h5>
+            <div class="d-flex gap-2">
+            </div>
+          </div>
+        </div>
+        <div class="card-body p-4">
+          <div id="historicoFrequencias" class="historico-container" style="min-height: 200px;">
+            <div class="text-center py-4">
+              <div class="bg-light rounded-circle p-3 mx-auto mb-3" style="width: 60px; height: 60px; display: flex; align-items: center; justify-content: center;">
+                <i class="bi bi-clock-history text-muted" style="font-size: 1.5rem;"></i>
+              </div>
+              <p class="text-muted mb-0">Nenhuma frequência registrada anteriormente.</p>
+              <small class="text-muted">O histórico será atualizado automaticamente no dia 10 de cada mês</small>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Mensagem de carregamento -->
+    <div class="col-12 d-flex justify-content-center py-5" id="mensagemCarregamento">
+      <div class="text-center">
+        <div class="spinner-border text-primary mb-3" role="status" style="width: 40px; height: 40px; border-width: 3px;">
+          <span class="visually-hidden">Carregando...</span>
+        </div>
+        <h5 class="fw-bold mb-1" style="color: #2c3e50;">Sincronizando dados</h5>
+        <p class="text-muted mb-0">Verificação contínua de dados em tempo real</p>
+      </div>
+    </div>
+  </div>
+</div>
+
+<style>
+  .hover-shadow {
+    transition: all 0.3s ease;
+    box-shadow: 0 4px 6px rgba(50, 50, 93, 0.11), 0 1px 3px rgba(0, 0, 0, 0.08);
+  }
+  
+  .hover-shadow:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 7px 14px rgba(50, 50, 93, 0.1), 0 3px 6px rgba(0, 0, 0, 0.08);
+  }
+  
+  .historico-container > div {
+    border-radius: 8px;
+    transition: all 0.2s;
+  }
+  
+  .historico-container > div:hover {
+    background-color: #f8f9fa;
+  }
+  
+  .historico-item {
+    transition: all 0.2s;
+    border-left: 3px solid #4caf50;
+  }
+  
+  .historico-item:hover {
+    transform: translateX(3px);
+    background-color: #f8f9fa;
+  }
+  
+  .badge {
+    border: 1px solid #e9ecef;
+  }
+  
+  .card {
+    transition: all 0.3s ease;
+  }
+</style>

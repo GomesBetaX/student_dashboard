@@ -1,0 +1,53 @@
+[
+  {
+    "atacanteId": 2,
+    "atacanteNome": "Alexia Moreira",
+    "atacantePoder": 10,
+    "atacanteDado": 6,
+    "atacanteDano": 60,
+    "defensorId": 3,
+    "defensorNome": "teste",
+    "defensorPoder": 0,
+    "defensorDado": 3,
+    "defensorDano": 0,
+    "vencedorId": 2,
+    "vencedorNome": "Alexia Moreira",
+    "goldTransferido": 7,
+    "empate": false,
+    "timestamp": 1759759544511
+  },
+  {
+    "atacanteId": 4,
+    "atacanteNome": "teste2",
+    "atacantePoder": 0,
+    "atacanteDado": 1,
+    "atacanteDano": 0,
+    "defensorId": 5,
+    "defensorNome": "teste3",
+    "defensorPoder": 0,
+    "defensorDado": 6,
+    "defensorDano": 0,
+    "vencedorId": null,
+    "vencedorNome": "Empate",
+    "goldTransferido": 0,
+    "empate": true,
+    "timestamp": 1759759644561
+  },
+  {
+    "atacanteId": 2,
+    "atacanteNome": "Alexia Moreira",
+    "atacantePoder": 10,
+    "atacanteDado": 3,
+    "atacanteDano": 30,
+    "defensorId": 7,
+    "defensorNome": "teste5",
+    "defensorPoder": 10,
+    "defensorDado": 6,
+    "defensorDano": 60,
+    "vencedorId": 7,
+    "vencedorNome": "teste5",
+    "goldTransferido": 19,
+    "empate": false,
+    "timestamp": 1759879625047
+  }
+]

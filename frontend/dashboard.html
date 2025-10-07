@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Dashboard | Gomes System</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css">
+  <link rel="stylesheet" href="style.css">
+  <style>
+    :root {
+      --primary: #4361ee;
+      --sidebar-width: 280px;
+    }
+
+    body {
+      background-color: #f8f9fa;
+      font-family: 'Inter', sans-serif;
+    }
+
+    .navbar {
+      background: white;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+    }
+
+    .sidebar {
+      width: var(--sidebar-width);
+      position: fixed;
+      top: 0;
+      left: 0;
+      height: 100vh;
+      background: linear-gradient(135deg, var(--primary), #3a0ca3);
+      color: white;
+      padding-top: 70px;
+      z-index: 1000;
+      transition: transform 0.3s ease;
+    }
+
+    .sidebar-item {
+      padding: 12px 20px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      border-radius: 0 20px 20px 0;
+      transition: 0.2s;
+      cursor: pointer;
+    }
+
+    .sidebar-item:hover, .sidebar-item.active {
+      background: rgba(255,255,255,0.2);
+      backdrop-filter: blur(5px);
+    }
+
+    .sidebar-item i {
+      width: 24px;
+      text-align: center;
+      font-size: 1.1rem;
+    }
+
+    .main-content {
+      margin-left: var(--sidebar-width);
+      min-height: 100vh;
+      padding: 20px;
+    }
+
+    @media (max-width: 992px) {
+      .sidebar {
+        transform: translateX(-100%);
+      }
+      .main-content {
+        margin-left: 0;
+      }
+      .sidebar.show {
+        transform: translateX(0);
+      }
+    }
+  </style>
+</head>
+<body>
+  <!-- Navbar -->
+  <nav class="navbar navbar-light px-3">
+    <button class="btn btn-outline-primary btn-sm" id="menuToggle">
+      <i class="bi bi-list"></i>
+    </button>
+    <span class="text-muted small">Professor</span>
+  </nav>
+
+  <!-- Sidebar -->
+  <div class="sidebar" id="sidebar">
+    <div class="px-4 mb-4">
+      
+      <h5 class="fw-bold fs-4"><img src="assets/g-logo.svg" height="50px"> Gomes System</h5>
+    </div>
+    <div class="menu-items">
+      <div class="sidebar-item active fs-5" data-page="perfil">
+        👨‍🏫 Perfil
+      </div>
+      <div class="sidebar-item fs-5" data-page="turmas">
+        🎓 Minhas turmas
+      </div>
+      <div class="sidebar-item fs-5" data-page="frequencia">
+        📊 Frequência
+      </div>
+      <div class="sidebar-item fs-5" data-page="tarefas">
+        📋 Tarefas
+      </div>
+      <div class="sidebar-item fs-5" data-page="loja">
+        🏪 Loja
+      </div>
+      <div class="sidebar-item text-danger mt-4" id="logoutBtn">
+        ⛔ <span class="text-warning fs-6" style="font-weight: bold;">Sair</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Main Content -->
+  <div class="main-content" id="mainContent">
+    <!-- O conteúdo será carregado aqui via JS -->
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>  
+  <script src="dashboard.js"></script>
+  <script src="https://bots.easy-peasy.ai/chat.min.js" data-chat-url="https://bots.easy-peasy.ai/bot/e2593ef5-390a-49dd-8ed4-5497256b2e2e" data-btn-position="bottom-right" data-widget-btn-color="#6366f1 " defer> </script>
+</body>
+</html>

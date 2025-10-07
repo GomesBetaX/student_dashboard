@@ -1,0 +1,186 @@
+:root {
+  --primary-gradient-start: #4361ee;
+  --primary-gradient-end: #3a0ca3;
+  --card-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+  --transition: all 0.3s ease;
+}
+
+body, html {
+  height: 100%;
+  margin: 0;
+  padding: 0;
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+  overflow-x: hidden;
+}
+
+/* Gradiente lindo de volta */
+.gradient-primary {
+  background: linear-gradient(135deg, var(--primary-gradient-start), var(--primary-gradient-end));
+  position: relative;
+  overflow: hidden;
+}
+
+.gradient-primary::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: radial-gradient(circle at top right, rgba(255,255,255,0.1) 0%, transparent 30%);
+  z-index: 0;
+}
+
+/* Card com profundidade e transparência */
+.card {
+  border-radius: 1.5rem !important;
+  box-shadow: var(--card-shadow) !important;
+  transition: var(--transition);
+  backdrop-filter: blur(10px);
+  background-color: rgba(255, 255, 255, 0.9) !important;
+  z-index: 1;
+}
+
+.card:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 30px 60px -15px rgba(0, 0, 0, 0.25) !important;
+}
+
+/* Inputs com estilo premium */
+.form-control {
+  border: 1.5px solid #e2e8f0;
+  border-radius: 12px !important;
+  padding: 12px 16px;
+  transition: var(--transition);
+  height: 52px;
+  font-size: 1rem;
+}
+
+.form-control:focus {
+  border-color: #4361ee;
+  box-shadow: 0 0 0 0.25rem rgba(67, 97, 238, 0.25);
+}
+
+.input-group-text {
+  border: 1.5px solid #e2e8f0;
+  border-end-end-radius: 12px !important;
+  border-start-end-radius: 12px !important;
+  background-color: #f8fafc !important;
+}
+
+/* Overlay da imagem */
+.image-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(to right, rgba(58, 12, 163, 0.8), rgba(67, 97, 238, 0.6));
+  z-index: 1;
+}
+
+/* Botão com gradiente e efeito de brilho */
+.btn-primary {
+  background: linear-gradient(to right, #4361ee, #3a0ca3);
+  border: none;
+  position: relative;
+  overflow: hidden;
+  font-size: 1.1rem;
+}
+
+.btn-primary:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 10px 25px -5px rgba(67, 97, 238, 0.4);
+}
+
+.btn-primary::after {
+  content: '';
+  position: absolute;
+  top: -50%;
+  left: -60%;
+  width: 20px;
+  height: 200%;
+  background: rgba(255, 255, 255, 0.3);
+  transform: rotate(30deg);
+  transition: all 0.8s;
+}
+
+.btn-primary:hover::after {
+  left: 120%;
+}
+
+/* Animação de entrada */
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(20px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+#loginCard {
+  animation: fadeIn 0.6s ease-out forwards;
+  animation-delay: 0.2s;
+}
+
+/* Validação */
+.was-validated .form-control:invalid, .form-control.is-invalid {
+  border-color: #ef4444;
+  padding-right: calc(1.5em + 1.2rem) !important;
+  background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 12' width='12' height='12' fill='none' stroke='%23ef4444'%3e%3ccircle cx='6' cy='6' r='4.5'/%3e%3cpath stroke-linejoin='round' d='M5.8 3.6h.4L6 6.5z'/%3e%3ccircle cx='6' cy='8.2' r='.6' fill='%23ef4444' stroke='none'/%3e%3c/svg%3e");
+  background-repeat: no-repeat;
+  background-position: right calc(0.4em + 0.375rem) center;
+  background-size: calc(0.8em + 0.4rem) calc(0.8em + 0.4rem);
+}
+
+/* Gradiente principal */
+.bg-gradient-primary {
+  background: linear-gradient(135deg, #4361ee, #3a0ca3) !important;
+}
+
+/* Card premium */
+.card {
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+.card:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 20px 40px -10px rgba(0, 0, 0, 0.25) !important;
+}
+
+/* Botões arredondados */
+.btn-lg {
+  font-size: 1.1rem;
+  padding: 0.75rem 1.5rem;
+}
+
+/* Animação de foto */
+#profilePic:hover {
+  transform: scale(1.05);
+}
+
+/* Input moderno */
+.form-control-lg {
+  border: 2px solid #e2e8f0;
+  border-radius: 12px !important;
+  padding: 12px 16px;
+  font-size: 1.1rem;
+}
+.form-control-lg:focus {
+  border-color: #4361ee;
+  box-shadow: 0 0 0 0.25rem rgba(67, 97, 238, 0.25);
+}
+
+/* Overlay de drop */
+.drag-over {
+  opacity: 0.6 !important;
+  filter: blur(1px);
+}
+
+.btn-danger-subtle {
+  background-color: #ffebee;
+  border-color: #ffcdd2;
+  color: #d32f2f;
+}
+
+.btn-danger-subtle:hover {
+  background-color: #ffccbc;
+  border-color: #ffab91;
+  color: #c62828;
+}
