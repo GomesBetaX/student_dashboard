@@ -1234,52 +1234,62 @@ app.post('/api/comprar', authenticateToken, async (req, res) => {
   const { itemId } = req.body;
 
   try {
-    const { rows: itens } = await pool.query(`SELECT * FROM itens_loja WHERE id = $1`, [itemId]);
-    if (!itens.length) return res.status(404).json({ message: 'Item não encontrado.' });
+    const { rows: alunos } = await pool.query(`SELECT id, data FROM alunos`);
+    let turmaIdEncontrada = null;
+    let alunoEncontrado = null;
 
-    const item = itens[0];
-
-    // Carrega todos os grupos de alunos
-    const { rows: grupos } = await pool.query(`SELECT id, userId, data FROM alunos`);
-
-    for (const grupo of grupos) {
+    for (const row of alunos) {
+      if (!row.data) continue;
       let alunosArray;
       try {
-        alunosArray = JSON.parse(grupo.data);
+        alunosArray = JSON.parse(row.data);
       } catch {
-        alunosArray = [];
+        continue;
       }
 
-      const idx = alunosArray.findIndex(a => a.userId === alunoId);
-      if (idx !== -1) {
-        const aluno = alunosArray[idx];
-
-        if ((aluno.gold || 0) < item.preco) {
-          return res.status(400).json({ message: 'Gold insuficiente.' });
-        }
-
-        aluno.gold -= item.preco;
-        aluno.equipamentos = aluno.equipamentos || {};
-        aluno.equipamentos[item.slot] = item;
-
-        alunosArray[idx] = aluno;
-
-        await pool.query(`UPDATE alunos SET data = $1 WHERE id = $2`, [JSON.stringify(alunosArray), grupo.id]);
-
-        return res.json({
-          success: true,
-          message: `Você comprou ${item.nome}! (-${item.preco} 🪙)`,
-          novoSaldo: aluno.gold,
-        });
+      const found = alunosArray.find(a => String(a.userId) === String(alunoId));
+      if (found) {
+        turmaIdEncontrada = row.id;
+        alunoEncontrado = found;
+        break;
       }
     }
 
-    res.status(404).json({ message: 'Aluno não encontrado.' });
+    if (!alunoEncontrado) {
+      return res.status(404).json({ message: 'Aluno não encontrado.' });
+    }
+
+    // Busca item na loja
+    const { rows: itens } = await pool.query(`SELECT * FROM itens_loja WHERE id = $1`, [itemId]);
+    const item = itens[0];
+    if (!item) {
+      return res.status(404).json({ message: 'Item não encontrado.' });
+    }
+
+    if ((alunoEncontrado.gold || 0) < item.preco) {
+      return res.status(400).json({ message: 'Ouro insuficiente.' });
+    }
+
+    // Atualiza gold e mochila
+    alunoEncontrado.gold -= item.preco;
+    alunoEncontrado.mochila = alunoEncontrado.mochila || [];
+    alunoEncontrado.mochila.push(item);
+
+    // Salva de volta
+    const { rows: turmasRows } = await pool.query(`SELECT data FROM alunos WHERE id = $1`, [turmaIdEncontrada]);
+    let alunosArray = JSON.parse(turmasRows[0].data);
+    const idx = alunosArray.findIndex(a => String(a.userId) === String(alunoId));
+    alunosArray[idx] = alunoEncontrado;
+
+    await pool.query(`UPDATE alunos SET data = $1 WHERE id = $2`, [JSON.stringify(alunosArray), turmaIdEncontrada]);
+
+    res.json({ success: true, gold: alunoEncontrado.gold, item });
   } catch (err) {
-    console.error('❌ Erro ao comprar item:', err);
+    console.error('❌ Erro ao processar compra:', err);
     res.status(500).json({ message: 'Erro ao processar compra.' });
   }
 });
+
 
 
 
