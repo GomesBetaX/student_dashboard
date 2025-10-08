@@ -4,160 +4,179 @@ const { authenticateToken } = require('../middleware/auth');
 const User = require('../models/User');
 const db = require('../database/db');
 
+// GET /api/student/profile
 router.get('/profile', authenticateToken, (req, res) => {
-    if (req.user.role !== 'student') {
-        return res.status(403).json({ message: 'Acesso negado.' });
+  if (req.user.role !== 'student') {
+    return res.status(403).json({ message: 'Acesso negado.' });
+  }
+
+  const studentUserId = req.user.id;
+  const studentCtr = req.user.username;
+
+  db.all(`SELECT userId, data FROM alunos`, [], (err, allAlunosRows = []) => {
+    if (err) {
+      console.error('❌ Erro ao buscar alunos:', err);
+      return res.status(500).json({ message: 'Erro ao buscar dados de alunos.' });
     }
 
-    const studentUserId = req.user.id;
-    const studentCtr = req.user.username;
+    let alunoData = null;
+    let professorUserId = null;
 
-    // 1. Encontra todos os registros da tabela `alunos` (um por professor)
-    db.all(`SELECT userId, data FROM alunos`, [], (err, allAlunosRows) => {
-        if (err) {
-            return res.status(500).json({ message: 'Erro ao buscar dados de alunos.' });
+    for (const row of allAlunosRows) {
+      try {
+        const alunosDoProfessor = JSON.parse(row.data || '[]');
+        const found = alunosDoProfessor.find(a => a.ctr === studentCtr);
+        if (found) {
+          alunoData = found;
+          professorUserId = row.userId;
+          break;
         }
+      } catch (e) {
+        console.warn('⚠️ JSON inválido em alunos.userId =', row.userId, e.message);
+      }
+    }
 
-        let alunoData = null;
-        let professorUserId = null;
+    if (!alunoData) {
+      return res.status(404).json({ message: 'Dados detalhados do aluno não encontrados.' });
+    }
 
-        // 2. Procura em cada registro de professor pelo aluno com o CTR correspondente
-        for (const row of allAlunosRows) {
-            try {
-                const alunosDoProfessor = JSON.parse(row.data);
-                const found = alunosDoProfessor.find(a => a.ctr === studentCtr);
-                if (found) {
-                    alunoData = found;
-                    professorUserId = row.userId;
-                    break; // Para a busca assim que encontrar o aluno
-                }
-            } catch (e) {
-                console.error('Erro ao parsear JSON de alunos para o professor ID:', row.userId, e);
-            }
-        }
+    const turmasIds = Array.isArray(alunoData.turmas) ? alunoData.turmas : [];
+    if (turmasIds.length === 0) {
+      return res.json({
+        id: studentUserId,
+        nome: req.user.name,
+        ctr: studentCtr,
+        status: alunoData.status || 'ativo',
+        turmas: [],
+        presencas: alunoData.presencas || {},
+        pic: alunoData.pic || 'assets/profile-placeholder.jpg',
+        coverPic: alunoData.coverPic || 'assets/cover-placeholder.png',
+        gold: alunoData.gold || 100,
+        mochila: alunoData.mochila || [],
+        equipamentos: alunoData.equipamentos || {}
+      });
+    }
 
-        // 3. Se o aluno não foi encontrado em nenhum registro de professor
-        if (!alunoData) {
-            return res.status(404).json({ message: 'Dados detalhados do aluno não encontrados.' });
-        }
-        
-        // 4. Com os dados do aluno encontrados (que contêm o array de IDs de turmas), busca os detalhes das turmas
-        const turmasIds = alunoData.turmas || []; // Ex: [9, 10]
-        if (turmasIds.length === 0) {
-            // Se o aluno não está em turmas, retorna o perfil sem fazer a consulta de turmas
-            return res.json({
-                id: studentUserId,
-                nome: req.user.name,
-                ctr: studentCtr,
-                status: alunoData.status || 'ativo',
-                turmas: [],
-                presencas: alunoData.presencas || {},
-                pic: alunoData.pic || 'assets/profile-placeholder.jpg',
-                coverPic: alunoData.coverPic || 'assets/cover-placeholder.png',
-                // === CAMPOS DE JOGO ADICIONADOS ===
-                gold: alunoData.gold || 100,
-                mochila: alunoData.mochila || [],
-                equipamentos: alunoData.equipamentos || {}
+    // PostgreSQL requer placeholders numerados ($1, $2, ...)
+    const placeholders = turmasIds.map((_, i) => `$${i + 1}`).join(', ');
+    const sql = `SELECT * FROM turmas WHERE id IN (${placeholders})`;
 
-            });
-        }
-        
-        // 5. Busca as informações das turmas usando os IDs corretos
-        db.all(`SELECT * FROM turmas WHERE id IN (${turmasIds.map(() => '?').join(',')})`,
-            turmasIds,
-            (err, turmasRows) => {
-                if (err) {
-                    return res.status(500).json({ message: 'Erro ao buscar turmas.' });
-                }
+    db.all(sql, turmasIds, (err2, turmasRows = []) => {
+      if (err2) {
+        console.error('❌ Erro ao buscar turmas:', err2);
+        return res.status(500).json({ message: 'Erro ao buscar turmas.' });
+      }
 
-                const turmasAluno = turmasRows.map(turma => ({
-                    id: turma.id,
-                    nome: turma.nome,
-                    diasAula: JSON.parse(turma.diasAula),
-                    horario: turma.horario,
-                    finalizada: !!turma.finalizada,
-                    dataInicio: turma.dataInicio,
-                    expandido: !!turma.expandido,
-                    aulasDesativadas: turma.aulasDesativadas ? JSON.parse(turma.aulasDesativadas) : [],
-                    planejamentos: turma.planejamentos ? JSON.parse(turma.planejamentos) : {}
-                }));
+      const turmasAluno = turmasRows.map(turma => ({
+        id: turma.id,
+        nome: turma.nome || 'Turma sem nome',
+        diasAula: safeParse(turma.diasaula, []),
+        horario: turma.horario || '',
+        finalizada: !!turma.finalizada,
+        dataInicio: turma.datainicio || '',
+        expandido: !!turma.expandido,
+        aulasDesativadas: safeParse(turma.aulasdesativadas, []),
+        planejamentos: safeParse(turma.planejamentos, {})
+      }));
 
-                // Resposta final com os dados corretos
-                res.json({
-                    id: studentUserId,
-                    nome: req.user.name,
-                    ctr: studentCtr,
-                    status: alunoData.status || 'ativo',
-                    turmas: turmasAluno,
-                    gold: alunoData.gold, // === CAMPOS DE JOGO ADICIONADOS ===
-                    mochila: alunoData.mochila || [],
-                    equipamentos: alunoData.equipamentos || {},
-                    presencas: alunoData.presencas || {},
-                    pic: alunoData.pic || 'assets/profile-placeholder.jpg',
-                    coverPic: alunoData.coverPic || 'assets/cover-placeholder.png'
-                });
-            }
-        );
+      res.json({
+        id: studentUserId,
+        nome: req.user.name,
+        ctr: studentCtr,
+        status: alunoData.status || 'ativo',
+        turmas: turmasAluno,
+        gold: alunoData.gold || 0,
+        mochila: alunoData.mochila || [],
+        equipamentos: alunoData.equipamentos || {},
+        presencas: alunoData.presencas || {},
+        pic: alunoData.pic || 'assets/profile-placeholder.jpg',
+        coverPic: alunoData.coverPic || 'assets/cover-placeholder.png'
+      });
     });
+  });
 });
+
+// Função de parse segura
+function safeParse(value, fallback) {
+  if (!value) return fallback;
+  try { return JSON.parse(value); }
+  catch { return fallback; }
+}
+
 
 
 // PUT /api/student/profile → Atualiza perfil do aluno (foto, gold, mochila, equipamentos, etc.)
-router.put('/profile', authenticateToken, (req, res) => {
-    if (req.user.role !== 'student') {
-        return res.status(403).json({ message: 'Acesso negado.' });
-    }
+// PUT /api/student/profile
+router.put('/profile', authenticateToken, async (req, res) => {
+  if (req.user.role !== 'student') {
+    return res.status(403).json({ message: 'Acesso negado.' });
+  }
 
-    const studentCtr = req.user.username;
-    const updates = req.body; // Pode conter: { pic, gold, mochila, equipamentos, ... }
+  const { gold, mochila, equipamentos, presencas, pic, coverPic } = req.body;
+  const studentCtr = req.user.username;
 
-    // 1. Busca todos os registros da tabela `alunos` para encontrar o professor do aluno
-    db.all(`SELECT userId, data FROM alunos`, [], (err, allAlunosRows) => {
-        if (err) {
-            return res.status(500).json({ message: 'Erro ao buscar dados.' });
+  try {
+    // 🔹 Busca todos os registros de alunos
+    db.all(`SELECT id, userId, data FROM alunos`, [], async (err, rows = []) => {
+      if (err) {
+        console.error('❌ Erro ao buscar alunos:', err);
+        return res.status(500).json({ message: 'Erro ao buscar dados de alunos.' });
+      }
+
+      let foundRow = null;
+      let alunoArray = [];
+
+      for (const row of rows) {
+        try {
+          alunoArray = JSON.parse(row.data || '[]');
+          const aluno = alunoArray.find(a => a.ctr === studentCtr);
+          if (aluno) {
+            foundRow = row;
+            break;
+          }
+        } catch (e) {
+          console.warn('⚠️ JSON inválido em alunos.userId =', row.userId);
         }
+      }
 
-        let professorUserId = null;
-        let alunosDoProfessor = null;
-        let alunoIndex = -1;
+      if (!foundRow) {
+        return res.status(404).json({ message: 'Aluno não encontrado.' });
+      }
 
-        // 2. Encontra o registro do professor e o aluno específico
-        for (const row of allAlunosRows) {
-            const parsedData = JSON.parse(row.data);
-            const index = parsedData.findIndex(a => a.ctr === studentCtr);
-            if (index !== -1) {
-                professorUserId = row.userId;
-                alunosDoProfessor = parsedData;
-                alunoIndex = index;
-                break;
-            }
+      // 🔹 Atualiza os dados do aluno no array
+      alunoArray = alunoArray.map(a => {
+        if (a.ctr === studentCtr) {
+          return {
+            ...a,
+            gold: gold ?? a.gold,
+            mochila: mochila ?? a.mochila,
+            equipamentos: equipamentos ?? a.equipamentos,
+            presencas: presencas ?? a.presencas,
+            pic: pic ?? a.pic,
+            coverPic: coverPic ?? a.coverPic
+          };
         }
+        return a;
+      });
 
-        if (alunoIndex === -1) {
-            return res.status(404).json({ message: 'Aluno não encontrado.' });
+      // 🔹 Atualiza o JSON completo no banco
+      const updatedJson = JSON.stringify(alunoArray);
+      const sql = `UPDATE alunos SET data = $1 WHERE id = $2`;
+
+      db.run(sql, [updatedJson, foundRow.id], (updateErr) => {
+        if (updateErr) {
+          console.error('❌ Erro ao atualizar aluno:', updateErr);
+          return res.status(500).json({ message: 'Erro ao atualizar perfil do aluno.' });
         }
-
-        // 3. Atualiza APENAS os campos fornecidos em `updates`
-        const alunoAtual = alunosDoProfessor[alunoIndex];
-        for (const key in updates) {
-            if (updates[key] !== undefined) {
-                alunoAtual[key] = updates[key];
-            }
-        }
-
-        // 4. Salva de volta
-        db.run(
-            `UPDATE alunos SET data = ? WHERE userId = ?`,
-            [JSON.stringify(alunosDoProfessor), professorUserId],
-            function(err) {
-                if (err) {
-                    return res.status(500).json({ message: 'Erro ao salvar dados.' });
-                }
-                res.json({ success: true, message: 'Dados atualizados com sucesso!', aluno: alunoAtual });
-            }
-        );
+        res.json({ message: 'Perfil atualizado com sucesso!' });
+      });
     });
+  } catch (err) {
+    console.error('❌ Erro inesperado no PUT /profile:', err);
+    res.status(500).json({ message: 'Erro interno no servidor.' });
+  }
 });
+
 
 
 module.exports = router;
