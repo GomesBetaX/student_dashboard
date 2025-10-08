@@ -101,598 +101,610 @@ function safeParse(value, fallback) {
 // =======================================================
 // ✅ POST /api/turmas — Cria uma nova turma
 // =======================================================
+// POST /api/turmas
 app.post('/api/turmas', authenticateToken, async (req, res) => {
   try {
     const userId = req.user.id;
-    const novaTurma = req.body;
+    const {
+      nome,
+      diasAula = [],
+      horario = '',
+      dataInicio = '',
+      tipo = '',
+      duracao = 3,
+      finalizada = false,
+      expandido = true,
+      aulasDesativadas = [],
+      planejamentos = {},
+      alunos = []
+    } = req.body;
 
-    if (!novaTurma || !novaTurma.nome || !novaTurma.diasAula || !novaTurma.horario || !novaTurma.dataInicio) {
-      return res.status(400).json({ error: 'Dados da turma incompletos.' });
-    }
-
-    const alunosJson = JSON.stringify(novaTurma.alunos || []);
     const sql = `
       INSERT INTO turmas (
-        userId, nome, diasAula, horario, dataInicio, tipo, duracao, 
-        finalizada, expandido, aulasDesativadas, planejamentos, alunos
+        userId, nome, diasaula, horario, datainicio, tipo, duracao,
+        finalizada, expandido, aulasdesativadas, planejamentos, alunos
       )
-      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
-      RETURNING id
+      VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12)
+      RETURNING *
     `;
 
-    const result = await pool.query(sql, [
+    const values = [
       userId,
-      novaTurma.nome,
-      JSON.stringify(novaTurma.diasAula),
-      novaTurma.horario,
-      novaTurma.dataInicio,
-      novaTurma.tipo || '',
-      novaTurma.duracao || 3,
-      novaTurma.finalizada || false,
-      novaTurma.expandido !== undefined ? novaTurma.expandido : true,
-      JSON.stringify(novaTurma.aulasDesativadas || []),
-      JSON.stringify(novaTurma.planejamentos || {}),
-      alunosJson
-    ]);
+      nome,
+      JSON.stringify(diasAula),
+      horario,
+      dataInicio,
+      tipo,
+      duracao,
+      finalizada,
+      expandido,
+      JSON.stringify(aulasDesativadas),
+      JSON.stringify(planejamentos),
+      JSON.stringify(alunos)
+    ];
 
-    res.status(201).json({ 
-      id: result.rows[0].id, 
-      ...novaTurma, 
-      alunos: novaTurma.alunos || [] 
+    const result = await pool.query(sql, values);
+    res.status(201).json({
+      message: 'Turma criada com sucesso!',
+      turma: result.rows[0]
     });
-
   } catch (err) {
-    console.error('❌ Erro ao inserir turma:', err);
-    res.status(500).json({ error: 'Erro ao salvar turma no banco.' });
+    console.error('❌ Erro ao criar turma:', err);
+    res.status(500).json({ message: 'Erro ao criar turma.' });
   }
 });
+
 
 // =======================================================
 // ✅ PUT /api/turmas/:id — Atualiza uma turma existente
 // =======================================================
+// PUT /api/turmas/:id
 app.put('/api/turmas/:id', authenticateToken, async (req, res) => {
-  try {
-    const userId = req.user.id;
-    const turmaId = req.params.id;
-    const turmaAtualizada = req.body;
+  const userId = req.user.id;
+  const turmaId = req.params.id;
 
-    const alunosJson = JSON.stringify(turmaAtualizada.alunos || []);
+  try {
+    const {
+      nome = '',
+      diasAula = [],
+      horario = '',
+      dataInicio = '',
+      tipo = '',
+      duracao = 3,
+      finalizada = false,
+      expandido = true,
+      aulasDesativadas = [],
+      planejamentos = {},
+      alunos = []
+    } = req.body;
+
+    // ⚙️ Atualiza a turma com segurança
     const sql = `
       UPDATE turmas SET
         nome = $1,
-        diasAula = $2,
+        diasaula = $2,
         horario = $3,
-        dataInicio = $4,
+        datainicio = $4,
         tipo = $5,
         duracao = $6,
         finalizada = $7,
         expandido = $8,
-        aulasDesativadas = $9,
+        aulasdesativadas = $9,
         planejamentos = $10,
         alunos = $11
       WHERE id = $12 AND userId = $13
+      RETURNING *
     `;
 
-    const result = await pool.query(sql, [
-      turmaAtualizada.nome,
-      JSON.stringify(turmaAtualizada.diasAula || []),
-      turmaAtualizada.horario,
-      turmaAtualizada.dataInicio,
-      turmaAtualizada.tipo,
-      turmaAtualizada.duracao,
-      turmaAtualizada.finalizada,
-      turmaAtualizada.expandido,
-      JSON.stringify(turmaAtualizada.aulasDesativadas || []),
-      JSON.stringify(turmaAtualizada.planejamentos || {}),
-      alunosJson,
+    const values = [
+      nome,
+      JSON.stringify(diasAula),
+      horario,
+      dataInicio,
+      tipo,
+      duracao,
+      finalizada,
+      expandido,
+      JSON.stringify(aulasDesativadas),
+      JSON.stringify(planejamentos),
+      JSON.stringify(alunos),
       turmaId,
       userId
-    ]);
+    ];
+
+    const result = await pool.query(sql, values);
 
     if (result.rowCount === 0) {
-      return res.status(404).json({ error: 'Turma não encontrada ou não pertence a este usuário.' });
+      return res.status(404).json({ message: 'Turma não encontrada.' });
     }
 
-    res.json({ success: true, message: 'Turma atualizada com sucesso.' });
+    res.json({
+      message: 'Turma atualizada com sucesso!',
+      turma: result.rows[0]
+    });
 
   } catch (err) {
     console.error('❌ Erro ao atualizar turma:', err);
-    res.status(500).json({ error: 'Erro ao atualizar turma no banco.' });
+    res.status(500).json({ message: 'Erro ao atualizar turma.' });
   }
 });
 
 
-app.delete('/api/turmas/:id', authenticateToken, (req, res) => {
+
+// DELETE /api/turmas/:id
+app.delete('/api/turmas/:id', authenticateToken, async (req, res) => {
   const userId = req.user.id;
   const turmaId = req.params.id;
-  db.run(`DELETE FROM turmas WHERE id = ? AND userId = ?`, [turmaId, userId], function (err) {
-    if (err) {
-      console.error('Erro ao deletar turma:', err);
-      return res.status(500).json({ error: 'Erro ao deletar turma no banco.' });
+
+  try {
+    const sql = `
+      DELETE FROM turmas
+      WHERE id = $1 AND userId = $2
+      RETURNING id, nome
+    `;
+
+    const result = await pool.query(sql, [turmaId, userId]);
+
+    if (result.rowCount === 0) {
+      return res.status(404).json({
+        error: 'Turma não encontrada ou não pertence a este usuário.'
+      });
     }
-    if (this.changes === 0) {
-      return res.status(404).json({ error: 'Turma não encontrada ou não pertence a este usuário.' });
-    }
-    res.json({ success: true, message: 'Turma deletada com sucesso.' });
-  });
+
+    res.json({
+      success: true,
+      message: `Turma "${result.rows[0].nome}" deletada com sucesso.`
+    });
+
+  } catch (err) {
+    console.error('❌ Erro ao deletar turma:', err);
+    res.status(500).json({ error: 'Erro ao deletar turma no banco.' });
+  }
 });
+
 
 // --- ALUNOS ---
-app.get('/api/alunos', authenticateToken, (req, res) => {
+app.get('/api/alunos', authenticateToken, async (req, res) => {
   const userId = req.user.id;
-  db.get(`SELECT data FROM alunos WHERE userId = ?`, [userId], (err, row) => {
-    if (err || !row) return res.json([]);
-    res.json(JSON.parse(row.data));
-  });
+  try {
+    const { rows } = await pool.query(`SELECT data FROM alunos WHERE userId = $1`, [userId]);
+    if (rows.length === 0) return res.json([]);
+    res.json(JSON.parse(rows[0].data));
+  } catch (err) {
+    console.error('❌ Erro ao buscar alunos:', err);
+    res.status(500).json({ error: 'Erro ao buscar alunos.' });
+  }
 });
 
-app.post('/api/alunos', authenticateToken, (req, res) => {
+app.post('/api/alunos', authenticateToken, async (req, res) => {
   const userId = req.user.id;
   const alunos = req.body;
+  const dataJson = JSON.stringify(alunos);
 
-  db.get(`SELECT id FROM alunos WHERE userId = ?`, [userId], (err, row) => {
-    if (err) return res.status(500).json({ error: 'Erro no banco' });
-    const dataJson = JSON.stringify(alunos);
+  try {
+    const existing = await pool.query(`SELECT id FROM alunos WHERE userId = $1`, [userId]);
 
-    const salvarAlunos = () => {
-      // Inicializa PVP da arena para cada aluno
-      alunos.forEach(a => {
+    // Função interna para inicializar arena
+    const salvarAlunos = async () => {
+      for (const a of alunos) {
         if (a.userId) {
-          db.run(`
-            INSERT INTO arena (alunoId, pvpAtivado)
-            VALUES (?, 1)
-            ON CONFLICT(alunoId) DO NOTHING
-          `, [a.userId], (err2) => {
-            if (err2) console.error('Erro ao inicializar arena para aluno:', a.userId, err2);
-          });
+          try {
+            await pool.query(`
+              INSERT INTO arena (alunoId, pvpAtivado)
+              VALUES ($1, TRUE)
+              ON CONFLICT (alunoId) DO NOTHING
+            `, [a.userId]);
+          } catch (err) {
+            console.error('Erro ao inicializar arena para aluno:', a.userId, err);
+          }
         }
-      });
+      }
     };
 
-    if (row) {
-      db.run(`UPDATE alunos SET data = ? WHERE userId = ?`, [dataJson, userId], err2 => {
-        if (err2) return res.status(500).json({ error: 'Erro ao atualizar' });
-        salvarAlunos();
-        res.json({ success: true });
-      });
+    if (existing.rows.length > 0) {
+      // UPDATE
+      await pool.query(`UPDATE alunos SET data = $1 WHERE userId = $2`, [dataJson, userId]);
+      await salvarAlunos();
+      return res.json({ success: true });
     } else {
-      // INSERT com RETURNING id para devolver id corretamente
-      db.get(`INSERT INTO alunos (userId, data) VALUES (?, ?) RETURNING id`, [userId, dataJson], (err2, r) => {
-        if (err2) return res.status(500).json({ error: 'Erro ao inserir' });
-        salvarAlunos();
-        res.json({ success: true, id: r.id });
-      });
+      // INSERT com RETURNING id
+      const { rows } = await pool.query(
+        `INSERT INTO alunos (userId, data) VALUES ($1, $2) RETURNING id`,
+        [userId, dataJson]
+      );
+      await salvarAlunos();
+      return res.json({ success: true, id: rows[0].id });
     }
-  });
+  } catch (err) {
+    console.error('❌ Erro ao salvar alunos:', err);
+    res.status(500).json({ error: 'Erro no banco de dados.' });
+  }
 });
 
+
 // --- ARENA ---
-app.get('/api/arena/alunos', authenticateToken, (req, res) => {
+
+// Função auxiliar para JSON seguro
+function safeJSON(value, fallback) {
+  if (!value) return fallback;
+  try { return JSON.parse(value); } catch { return fallback; }
+}
+
+// -------------------------------
+// 🧩 1) Buscar alunos da arena
+// -------------------------------
+app.get('/api/arena/alunos', authenticateToken, async (req, res) => {
   const alunoCtr = req.user.username;
+  try {
+    const { rows: allRows } = await pool.query(`SELECT data FROM alunos`);
+    if (!allRows.length) return res.json([]);
 
-  db.all(`SELECT data FROM alunos`, [], (err, allRows) => {
-    if (err) return res.status(500).json({ error: 'Erro ao buscar turmas.' });
-
-    // 1) Minhas turmas
+    // Minhas turmas
     let minhasTurmas = [];
     for (const row of allRows) {
-      try {
-        const alunos = JSON.parse(row.data);
-        const eu = alunos.find(a => a.ctr === alunoCtr);
-        if (eu?.turmas) {
-          minhasTurmas = eu.turmas;
-          break;
-        }
-      } catch {}
+      const alunos = safeJSON(row.data, []);
+      const eu = alunos.find(a => a.ctr === alunoCtr);
+      if (eu?.turmas) {
+        minhasTurmas = eu.turmas;
+        break;
+      }
     }
     if (minhasTurmas.length === 0) return res.json([]);
 
-    // 2) Alunos das mesmas turmas
+    // Alunos das mesmas turmas
     const alunosDaTurma = [];
     for (const row of allRows) {
-      try {
-        const alunos = JSON.parse(row.data);
-        for (const aluno of alunos) {
-          if (aluno.ctr !== alunoCtr && aluno.turmas?.some(tid => minhasTurmas.includes(tid))) {
-            alunosDaTurma.push({
-              userId: aluno.userId,
-              ctr: aluno.ctr,
-              nome: aluno.nome,
-              pic: aluno.pic || 'assets/profile-placeholder.jpg',
-              gold: aluno.gold || 0,
-              equipamentos: aluno.equipamentos || {},
-              _userId: aluno.userId
-            });
-          }
+      const alunos = safeJSON(row.data, []);
+      for (const aluno of alunos) {
+        if (aluno.ctr !== alunoCtr && aluno.turmas?.some(tid => minhasTurmas.includes(tid))) {
+          alunosDaTurma.push({
+            userId: aluno.userId,
+            ctr: aluno.ctr,
+            nome: aluno.nome,
+            pic: aluno.pic || 'assets/profile-placeholder.jpg',
+            gold: aluno.gold || 0,
+            equipamentos: aluno.equipamentos || {},
+            _userId: aluno.userId
+          });
         }
-      } catch {}
+      }
     }
 
-    // Remove duplicatas por ctr
+    // Remover duplicatas
     const map = new Map();
     alunosDaTurma.forEach(a => { if (!map.has(a.ctr)) map.set(a.ctr, a); });
     const unicos = Array.from(map.values());
     const ids = unicos.map(a => a._userId);
-    if (ids.length === 0) return res.json([]);
+    if (!ids.length) return res.json([]);
 
-    const placeholders = ids.map(() => '?').join(',');
-    db.all(`SELECT alunoId, cansadoAte FROM arena WHERE alunoId IN (${placeholders})`, ids, (err2, arenaRows) => {
-      if (err2) return res.status(500).json({ error: 'Erro ao buscar arena.' });
-      const cansacoMap = {};
-      arenaRows.forEach(r => { cansacoMap[r.alunoId] = r.cansadoAte; });
+    const { rows: arenaRows } = await pool.query(
+      `SELECT alunoId, cansadoAte FROM arena WHERE alunoId = ANY($1::int[])`,
+      [ids]
+    );
+    const cansacoMap = {};
+    arenaRows.forEach(r => { cansacoMap[r.alunoid] = r.cansadoate; });
 
-      const resultado = unicos.map(a => ({ ...a, cansadoAte: cansacoMap[a._userId] || null }));
-      res.json(resultado);
-    });
-  });
+    const resultado = unicos.map(a => ({ ...a, cansadoAte: cansacoMap[a._userId] || null }));
+    res.json(resultado);
+  } catch (err) {
+    console.error('❌ Erro em /api/arena/alunos:', err);
+    res.status(500).json({ error: 'Erro ao buscar alunos da arena.' });
+  }
 });
 
-app.get('/api/arena/meu-estado', authenticateToken, (req, res) => {
-  const alunoId = req.user.id;
-  db.get(`SELECT cansadoAte FROM arena WHERE alunoId = ?`, [alunoId], (err, row) => {
-    if (err) return res.status(500).json({ error: 'Erro ao buscar estado.' });
-    res.json({ cansadoAte: row?.cansadoAte || null });
-  });
+// -------------------------------
+// 🧩 2) Meu estado / status PVP
+// -------------------------------
+app.get('/api/arena/meu-estado', authenticateToken, async (req, res) => {
+  try {
+    const { rows } = await pool.query(
+      `SELECT cansadoAte FROM arena WHERE alunoId = $1`, [req.user.id]
+    );
+    res.json({ cansadoAte: rows[0]?.cansadoate || null });
+  } catch (err) {
+    res.status(500).json({ error: 'Erro ao buscar estado.' });
+  }
 });
 
-app.get('/api/arena/meu-status', authenticateToken, (req, res) => {
-  const alunoId = req.user.id;
-  db.get(`SELECT pvpAtivado FROM arena WHERE alunoId = ?`, [alunoId], (err, row) => {
-    const pvpAtivado = row ? !!row.pvpAtivado : true;
-    res.json({ pvpAtivado });
-  });
+app.get('/api/arena/meu-status', authenticateToken, async (req, res) => {
+  try {
+    const { rows } = await pool.query(
+      `SELECT pvpAtivado FROM arena WHERE alunoId = $1`, [req.user.id]
+    );
+    res.json({ pvpAtivado: rows.length ? rows[0].pvpativado : true });
+  } catch {
+    res.status(500).json({ error: 'Erro ao buscar status.' });
+  }
 });
 
-app.put('/api/arena/pvp', authenticateToken, (req, res) => {
+// -------------------------------
+// 🧩 3) Ativar/desativar PVP
+// -------------------------------
+app.put('/api/arena/pvp', authenticateToken, async (req, res) => {
   const { ativo } = req.body;
-  const alunoId = req.user.id;
-
-  db.run(`
-    INSERT INTO arena (alunoId, pvpAtivado)
-    VALUES (?, ?)
-    ON CONFLICT(alunoId) DO UPDATE SET pvpAtivado = ?
-  `, [alunoId, ativo ? 1 : 0, ativo ? 1 : 0], (err) => {
-    if (err) return res.status(500).json({ error: 'Erro ao atualizar PVP.' });
+  try {
+    await pool.query(`
+      INSERT INTO arena (alunoId, pvpAtivado)
+      VALUES ($1, $2)
+      ON CONFLICT (alunoId) DO UPDATE SET pvpAtivado = $2
+    `, [req.user.id, ativo]);
     res.json({ success: true, pvpAtivado: ativo });
-  });
+  } catch (err) {
+    res.status(500).json({ error: 'Erro ao atualizar PVP.' });
+  }
 });
 
-// Batalha
-app.post('/api/arena/batalha', authenticateToken, (req, res) => {
+// -------------------------------
+// 🧩 4) Batalha
+// -------------------------------
+app.post('/api/arena/batalha', authenticateToken, async (req, res) => {
   const alvoId = parseInt(req.body.alvoId, 10);
   const atacanteId = req.user.id;
   const agora = new Date();
   const cansadoAte = new Date(agora.getTime() + 15 * 60 * 1000).toISOString();
 
-  console.log(`⚔️ Iniciando batalha: atacante ${atacanteId} vs alvo ${alvoId}`);
-
-  db.all(`SELECT userId, data FROM alunos`, [], (err, allRows) => {
-    if (err) return res.status(500).json({ error: 'Erro ao buscar dados dos alunos.' });
-
-    let atacanteData = null, alvoData = null;
-    let atacanteProfessorId = null, alvoProfessorId = null;
-    let atacanteArray = null, alvoArray = null;
-    let atacanteIndex = -1, alvoIndex = -1;
+  try {
+    const { rows: allRows } = await pool.query(`SELECT userId, data FROM alunos`);
+    let atacanteData, alvoData, atacanteProfessorId, alvoProfessorId;
+    let atacanteArray, alvoArray, atacanteIndex, alvoIndex;
 
     for (const row of allRows) {
-      try {
-        const alunos = JSON.parse(row.data);
-        const idxAtacante = alunos.findIndex(a => a.userId === atacanteId);
-        const idxAlvo = alunos.findIndex(a => a.userId === alvoId);
-
-        if (idxAtacante !== -1) {
-          atacanteData = alunos[idxAtacante];
-          atacanteArray = alunos;
-          atacanteProfessorId = row.userId;
-          atacanteIndex = idxAtacante;
-        }
-        if (idxAlvo !== -1) {
-          alvoData = alunos[idxAlvo];
-          alvoArray = [...alunos];
-          alvoProfessorId = row.userId;
-          alvoIndex = idxAlvo;
-        }
-      } catch {}
+      const alunos = safeJSON(row.data, []);
+      const idxAtacante = alunos.findIndex(a => a.userId === atacanteId);
+      const idxAlvo = alunos.findIndex(a => a.userId === alvoId);
+      if (idxAtacante !== -1) {
+        atacanteData = alunos[idxAtacante];
+        atacanteArray = alunos;
+        atacanteProfessorId = row.userid;
+        atacanteIndex = idxAtacante;
+      }
+      if (idxAlvo !== -1) {
+        alvoData = alunos[idxAlvo];
+        alvoArray = [...alunos];
+        alvoProfessorId = row.userid;
+        alvoIndex = idxAlvo;
+      }
     }
 
     if (!atacanteData || !alvoData)
       return res.status(404).json({ error: 'Um dos jogadores não foi encontrado.' });
 
-    db.get(`SELECT pvpAtivado, cansadoAte FROM arena WHERE alunoId = ?`, [atacanteId], (errA, arenaAtacante) => {
-      if (errA) return res.status(500).json({ error: 'Erro ao verificar status do atacante.' });
-      const atacantePode = arenaAtacante?.pvpAtivado && (!arenaAtacante.cansadoAte || new Date(arenaAtacante.cansadoAte) < agora);
-      if (!atacantePode) return res.status(400).json({ error: 'Você está cansado ou com PVP desativado.' });
+    // Verificar se podem lutar
+    const atacanteArena = await pool.query(
+      `SELECT pvpAtivado, cansadoAte FROM arena WHERE alunoId = $1`, [atacanteId]
+    );
+    const alvoArena = await pool.query(
+      `SELECT pvpAtivado, cansadoAte FROM arena WHERE alunoId = $1`, [alvoId]
+    );
 
-      db.get(`SELECT pvpAtivado, cansadoAte FROM arena WHERE alunoId = ?`, [alvoId], (errB, arenaAlvo) => {
-        if (errB) return res.status(500).json({ error: 'Erro ao verificar status do alvo.' });
-        const alvoPode = arenaAlvo?.pvpAtivado && (!arenaAlvo.cansadoAte || new Date(arenaAlvo.cansadoAte) < agora);
-        if (!alvoPode) return res.status(400).json({ error: 'O alvo não está disponível.' });
+    const atacantePode =
+      atacanteArena.rows[0]?.pvpativado &&
+      (!atacanteArena.rows[0]?.cansadoate || new Date(atacanteArena.rows[0].cansadoate) < agora);
+    const alvoPode =
+      alvoArena.rows[0]?.pvpativado &&
+      (!alvoArena.rows[0]?.cansadoate || new Date(alvoArena.rows[0].cansadoate) < agora);
 
-        // Cálculo
-        const poderAtacante = Object.values(atacanteData.equipamentos || {}).reduce((s, i) => s + (i?.power || 0), 0);
-        const poderAlvo = Object.values(alvoData.equipamentos || {}).reduce((s, i) => s + (i?.power || 0), 0);
-        const dadoAtacante = Math.floor(Math.random() * 6) + 1;
-        const dadoAlvo = Math.floor(Math.random() * 6) + 1;
-        const danoAtacante = dadoAtacante * poderAtacante;
-        const danoAlvo = dadoAlvo * poderAlvo;
+    if (!atacantePode) return res.status(400).json({ error: 'Você está cansado ou com PVP desativado.' });
+    if (!alvoPode) return res.status(400).json({ error: 'O alvo não está disponível.' });
 
-        let vencedor = null;
-        let goldTransferido = 0;
-        let empate = false;
+    // Calcular batalha
+    const poderAtacante = Object.values(atacanteData.equipamentos || {}).reduce((s, i) => s + (i?.power || 0), 0);
+    const poderAlvo = Object.values(alvoData.equipamentos || {}).reduce((s, i) => s + (i?.power || 0), 0);
+    const dadoAtacante = Math.floor(Math.random() * 6) + 1;
+    const dadoAlvo = Math.floor(Math.random() * 6) + 1;
+    const danoAtacante = dadoAtacante * poderAtacante;
+    const danoAlvo = dadoAlvo * poderAlvo;
 
-        if (danoAtacante > danoAlvo) {
-          vencedor = atacanteId;
-          goldTransferido = Math.floor((alvoData.gold || 0) * (0.1 + Math.random() * 0.05));
-        } else if (danoAlvo > danoAtacante) {
-          vencedor = alvoId;
-          goldTransferido = Math.floor((atacanteData.gold || 0) * (0.1 + Math.random() * 0.05));
-        } else {
-          empate = true;
-        }
+    let vencedor = null;
+    let goldTransferido = 0;
+    let empate = false;
 
-        console.log(`
-          ===== ⚔️ LOG DE BATALHA =====
-          Atacante: ${atacanteData.nome || atacanteData.name} (ID ${atacanteId})
-            Poder Base: ${poderAtacante}
-            Dado Rolado: ${dadoAtacante}
-            Dano Total: ${danoAtacante}
-
-          Defensor: ${alvoData.nome || alvoData.name} (ID ${alvoId})
-            Poder Base: ${poderAlvo}
-            Dado Rolado: ${dadoAlvo}
-            Dano Total: ${danoAlvo}
-
-          Resultado: ${empate ? 'EMPATE' : (vencedor === atacanteId ? `${atacanteData.nome} venceu` : `${alvoData.nome} venceu`)}
-          Gold transferido: ${goldTransferido} 🪙
-          ==============================
-        `);
-
-        const atualizarCansaco = (id) => new Promise((resolve, reject) => {
-          db.run(`
-            INSERT INTO arena (alunoId, cansadoAte)
-            VALUES (?, ?)
-            ON CONFLICT(alunoId) DO UPDATE SET cansadoAte = ?
-          `, [id, cansadoAte, cansadoAte], errC => errC ? reject(errC) : resolve());
-        });
-
-        Promise.all([atualizarCansaco(atacanteId), atualizarCansaco(alvoId)]).then(() => {
-          if (!empate && goldTransferido > 0) {
-            if (vencedor === atacanteId) {
-              atacanteArray[atacanteIndex].gold = (atacanteData.gold || 0) + goldTransferido;
-              alvoArray[alvoIndex].gold = Math.max(0, (alvoData.gold || 0) - goldTransferido);
-            } else {
-              atacanteArray[atacanteIndex].gold = Math.max(0, (atacanteData.gold || 0) - goldTransferido);
-              alvoArray[alvoIndex].gold = (alvoData.gold || 0) + goldTransferido;
-            }
-          }
-
-          db.run(`UPDATE alunos SET data = ? WHERE userId = ?`, [JSON.stringify(atacanteArray), atacanteProfessorId]);
-          db.run(`UPDATE alunos SET data = ? WHERE userId = ?`, [JSON.stringify(alvoArray), alvoProfessorId]);
-
-          // Log em arquivo
-          if (!fs.existsSync(logsFile)) fs.writeFileSync(logsFile, '[]', 'utf8');
-          const logs = JSON.parse(fs.readFileSync(logsFile, 'utf8'));
-          logs.push({
-            atacanteId,
-            atacanteNome: atacanteData.nome || atacanteData.name,
-            atacantePoder: poderAtacante,
-            atacanteDado: dadoAtacante,
-            atacanteDano: danoAtacante,
-            defensorId: alvoId,
-            defensorNome: alvoData.nome || alvoData.name,
-            defensorPoder: poderAlvo,
-            defensorDado: dadoAlvo,
-            defensorDano: danoAlvo,
-            vencedorId: empate ? null : vencedor,
-            vencedorNome: empate ? 'Empate' : (vencedor === atacanteId ? atacanteData.nome : alvoData.nome),
-            goldTransferido,
-            empate,
-            timestamp: Date.now()
-          });
-          fs.writeFileSync(logsFile, JSON.stringify(logs, null, 2));
-
-          res.json({
-            success: true,
-            vencedor,
-            empate,
-            goldTransferido,
-            danoAtacante,
-            danoAlvo,
-            dadoAtacante,
-            dadoAlvo
-          });
-        }).catch(() => res.status(500).json({ error: 'Erro ao aplicar cansaço.' }));
-      });
-    });
-  });
-});
-
-// Função auxiliar de logs (mantida)
-function criarLogBatalha(atacanteId, alvoId, vencedor, goldTransferido, callback) {
-  const agora = new Date().toISOString();
-  const logAtacante = {
-    tipo: 'batalha',
-    data: agora,
-    adversarioId: alvoId,
-    vencedor: vencedor === atacanteId,
-    gold: vencedor === atacanteId ? goldTransferido : -goldTransferido,
-    empate: vencedor === null
-  };
-  const logAlvo = {
-    tipo: 'batalha',
-    data: agora,
-    adversarioId: atacanteId,
-    vencedor: vencedor === alvoId,
-    gold: vencedor === alvoId ? goldTransferido : -goldTransferido,
-    empate: vencedor === null
-  };
-
-  db.get('SELECT username FROM users WHERE id = ?', [atacanteId], (err1, r1) => {
-    if (err1 || !r1) return callback();
-    const ctrAtacante = r1.username;
-    db.get('SELECT username FROM users WHERE id = ?', [alvoId], (err2, r2) => {
-      if (err2 || !r2) return callback();
-      const ctrAlvo = r2.username;
-
-      db.all('SELECT userId, data FROM alunos', [], (err3, rows) => {
-        if (err3) return callback();
-        for (const row of rows) {
-          try {
-            const alunos = JSON.parse(row.data);
-            const idx = alunos.findIndex(a => a.ctr === ctrAtacante);
-            if (idx !== -1) {
-              if (!alunos[idx].logs) alunos[idx].logs = [];
-              alunos[idx].logs.push(logAtacante);
-              db.run('UPDATE alunos SET data = ? WHERE userId = ?', [JSON.stringify(alunos), row.userId], () => {});
-              break;
-            }
-          } catch {}
-        }
-        for (const row of rows) {
-          try {
-            const alunos = JSON.parse(row.data);
-            const idx = alunos.findIndex(a => a.ctr === ctrAlvo);
-            if (idx !== -1) {
-              if (!alunos[idx].logs) alunos[idx].logs = [];
-              alunos[idx].logs.push(logAlvo);
-              db.run('UPDATE alunos SET data = ? WHERE userId = ?', [JSON.stringify(alunos), row.userId], () => {});
-              break;
-            }
-          } catch {}
-        }
-        callback();
-      });
-    });
-  });
-}
-
-app.post('/api/arena/toggle-pvp', authenticateToken, (req, res) => {
-  const alunoId = req.user.id;
-
-  db.get('SELECT pvpAtivado FROM arena WHERE alunoId = ?', [alunoId], (err, row) => {
-    if (err) return res.status(500).json({ error: 'Erro ao verificar status do PVP.' });
-
-    const novoStatus = !(row?.pvpAtivado);
-    if (row) {
-      db.run('UPDATE arena SET pvpAtivado = ? WHERE alunoId = ?', [novoStatus, alunoId], (err2) => {
-        if (err2) return res.status(500).json({ error: 'Erro ao atualizar PVP.' });
-        res.json({ pvpAtivado: novoStatus });
-      });
+    if (danoAtacante > danoAlvo) {
+      vencedor = atacanteId;
+      goldTransferido = Math.floor((alvoData.gold || 0) * (0.1 + Math.random() * 0.05));
+    } else if (danoAlvo > danoAtacante) {
+      vencedor = alvoId;
+      goldTransferido = Math.floor((atacanteData.gold || 0) * (0.1 + Math.random() * 0.05));
     } else {
-      db.run('INSERT INTO arena (alunoId, pvpAtivado) VALUES (?, ?)', [alunoId, novoStatus], (err2) => {
-        if (err2) return res.status(500).json({ error: 'Erro ao criar registro PVP.' });
-        res.json({ pvpAtivado: novoStatus });
-      });
+      empate = true;
     }
-  });
+
+    await Promise.all([
+      pool.query(`
+        INSERT INTO arena (alunoId, cansadoAte)
+        VALUES ($1, $2)
+        ON CONFLICT (alunoId) DO UPDATE SET cansadoAte = $2
+      `, [atacanteId, cansadoAte]),
+      pool.query(`
+        INSERT INTO arena (alunoId, cansadoAte)
+        VALUES ($1, $2)
+        ON CONFLICT (alunoId) DO UPDATE SET cansadoAte = $2
+      `, [alvoId, cansadoAte])
+    ]);
+
+    if (!empate && goldTransferido > 0) {
+      if (vencedor === atacanteId) {
+        atacanteArray[atacanteIndex].gold = (atacanteData.gold || 0) + goldTransferido;
+        alvoArray[alvoIndex].gold = Math.max(0, (alvoData.gold || 0) - goldTransferido);
+      } else {
+        atacanteArray[atacanteIndex].gold = Math.max(0, (atacanteData.gold || 0) - goldTransferido);
+        alvoArray[alvoIndex].gold = (alvoData.gold || 0) + goldTransferido;
+      }
+    }
+
+    await pool.query(`UPDATE alunos SET data = $1 WHERE userId = $2`, [JSON.stringify(atacanteArray), atacanteProfessorId]);
+    await pool.query(`UPDATE alunos SET data = $1 WHERE userId = $2`, [JSON.stringify(alvoArray), alvoProfessorId]);
+
+    // Log local
+    if (!fs.existsSync(logsFile)) fs.writeFileSync(logsFile, '[]', 'utf8');
+    const logs = JSON.parse(fs.readFileSync(logsFile, 'utf8'));
+    logs.push({
+      atacanteId, alvoId, vencedor,
+      atacanteNome: atacanteData.nome,
+      defensorNome: alvoData.nome,
+      atacantePoder: poderAtacante, defensorPoder: poderAlvo,
+      atacanteDado: dadoAtacante, defensorDado: dadoAlvo,
+      atacanteDano: danoAtacante, defensorDano: danoAlvo,
+      goldTransferido, empate, timestamp: Date.now()
+    });
+    fs.writeFileSync(logsFile, JSON.stringify(logs, null, 2));
+
+    res.json({
+      success: true, vencedor, empate, goldTransferido,
+      danoAtacante, danoAlvo, dadoAtacante, dadoAlvo
+    });
+  } catch (err) {
+    console.error('❌ Erro em /api/arena/batalha:', err);
+    res.status(500).json({ error: 'Erro interno na batalha.' });
+  }
 });
 
+// -------------------------------
+// 🧩 5) Logs
+// -------------------------------
 app.get('/api/arena/logs', authenticateToken, (req, res) => {
   const userId = req.user.id;
-  let logs = [];
-  if (fs.existsSync(logsFile)) logs = JSON.parse(fs.readFileSync(logsFile, 'utf8'));
+  if (!fs.existsSync(logsFile)) return res.json([]);
 
+  const logs = JSON.parse(fs.readFileSync(logsFile, 'utf8'));
   const meusLogs = logs
-    .filter(log => log.atacanteId === userId || log.defensorId === userId)
-    .map(log => {
-      const resultado =
-        log.vencedorId === null ? 'empate' : (log.vencedorId === userId ? 'win' : 'lose');
-
-      return {
-        data: new Date(log.timestamp).toLocaleString('pt-BR'),
-        atacante: log.atacanteNome,
-        atacantePoder: log.atacantePoder,
-        atacanteDado: log.atacanteDado,
-        atacanteDano: log.atacanteDano,
-        defensor: log.defensorNome,
-        defensorPoder: log.defensorPoder,
-        defensorDado: log.defensorDado,
-        defensorDano: log.defensorDano,
-        vencedor: log.vencedorNome,
-        gold: log.goldTransferido,
-        resultado
-      };
-    });
+    .filter(log => log.atacanteId === userId || log.alvoId === userId)
+    .map(log => ({
+      data: new Date(log.timestamp).toLocaleString('pt-BR'),
+      atacante: log.atacanteNome,
+      defensor: log.defensorNome,
+      vencedor: log.empate ? 'Empate' : log.vencedor,
+      gold: log.goldTransferido,
+      resultado:
+        log.empate ? 'empate' :
+        log.vencedor === userId ? 'win' : 'lose'
+    }));
 
   res.json(meusLogs.reverse());
 });
 
+
 // --- PROFESSOR ---
-app.get('/api/professor', authenticateToken, (req, res) => {
+// (usa a mesma função safeJSON já definida antes)
+
+app.get('/api/professor', authenticateToken, async (req, res) => {
   const userId = req.user.id;
-  db.get(`SELECT data FROM professores WHERE userId = ?`, [userId], (err, row) => {
-    if (err || !row) {
-      return res.json({ name: req.user.name, bio: '', pic: 'assets/profile-placeholder.jpg' });
+
+  try {
+    const { rows } = await pool.query(
+      `SELECT data FROM professores WHERE userId = $1`,
+      [userId]
+    );
+
+    if (!rows.length || !rows[0].data) {
+      // Se o professor ainda não tiver perfil salvo, retorna padrão
+      return res.json({
+        name: req.user.name,
+        bio: '',
+        pic: 'assets/profile-placeholder.jpg'
+      });
     }
-    res.json(JSON.parse(row.data));
-  });
+
+    const data = safeJSON(rows[0].data, {});
+    res.json(data);
+  } catch (err) {
+    console.error('❌ Erro em /api/professor:', err);
+    res.status(500).json({ error: 'Erro ao buscar dados do professor.' });
+  }
 });
 
-app.put('/api/professor', authenticateToken, (req, res) => {
+app.put('/api/professor', authenticateToken, async (req, res) => {
   const userId = req.user.id;
   const professorData = { name: req.user.name, ...req.body };
   const dataJson = JSON.stringify(professorData);
 
-  db.get(`SELECT id FROM professores WHERE userId = ?`, [userId], (err, row) => {
-    if (err) return res.status(500).json({ error: 'Erro no banco' });
+  try {
+    const { rows } = await pool.query(
+      `SELECT id FROM professores WHERE userId = $1`,
+      [userId]
+    );
 
-    if (row) {
-      db.run(`UPDATE professores SET data = ? WHERE userId = ?`, [dataJson, userId], (err2) => {
-        if (err2) return res.status(500).json({ error: 'Erro ao atualizar' });
-        res.json({ success: true });
-      });
+    if (rows.length > 0) {
+      // Já existe → atualiza
+      await pool.query(
+        `UPDATE professores SET data = $1 WHERE userId = $2`,
+        [dataJson, userId]
+      );
+      res.json({ success: true, message: 'Perfil atualizado com sucesso.' });
     } else {
-      db.get(`INSERT INTO professores (userId, data) VALUES (?, ?) RETURNING id`, [userId, dataJson], (err2, r) => {
-        if (err2) return res.status(500).json({ error: 'Erro ao inserir' });
-        res.json({ success: true, id: r.id });
-      });
+      // Não existe → insere novo
+      const { rows: inserted } = await pool.query(
+        `INSERT INTO professores (userId, data) VALUES ($1, $2) RETURNING id`,
+        [userId, dataJson]
+      );
+      res.json({ success: true, id: inserted[0].id, message: 'Perfil criado com sucesso.' });
     }
-  });
+  } catch (err) {
+    console.error('❌ Erro em /api/professor (PUT):', err);
+    res.status(500).json({ error: 'Erro ao salvar dados do professor.' });
+  }
 });
 
+
 // --- FREQUÊNCIA ---
-app.post('/api/frequencia/registrar', authenticateToken, (req, res) => {
+app.post('/api/frequencia/registrar', authenticateToken, async (req, res) => {
   const { mesAno, porcentagem, userId } = req.body;
+
   if (!mesAno || porcentagem === undefined || !userId) {
     return res.status(400).send('Dados incompletos para registro.');
   }
 
-  db.get(`SELECT * FROM frequenciasAnteriores WHERE userId = ? AND mesAno = ?`, [userId, mesAno], (err, row) => {
-    if (err) return res.status(500).send('Erro ao verificar frequência.');
-    if (row) return res.status(200).send('Registro já existente.');
-
-    db.run(`INSERT INTO frequenciasAnteriores (userId, mesAno, porcentagem) VALUES (?, ?, ?)`,
-      [userId, mesAno, porcentagem],
-      function (err2) {
-        if (err2) return res.status(500).send('Erro ao registrar frequência.');
-        res.status(201).send('Frequência registrada com sucesso.');
-      }
+  try {
+    // Verifica se já existe o registro do mesmo mês
+    const { rows: existentes } = await pool.query(
+      `SELECT id FROM frequenciasAnteriores WHERE userId = $1 AND mesAno = $2`,
+      [userId, mesAno]
     );
-  });
+
+    if (existentes.length > 0) {
+      return res.status(200).send('Registro já existente.');
+    }
+
+    // Insere novo registro
+    await pool.query(
+      `INSERT INTO frequenciasAnteriores (userId, mesAno, porcentagem) VALUES ($1, $2, $3)`,
+      [userId, mesAno, porcentagem]
+    );
+
+    res.status(201).send('Frequência registrada com sucesso.');
+  } catch (err) {
+    console.error('❌ Erro ao registrar frequência:', err);
+    res.status(500).send('Erro ao registrar frequência.');
+  }
 });
 
-app.get('/api/frequencia/historico', authenticateToken, (req, res) => {
+app.get('/api/frequencia/historico', authenticateToken, async (req, res) => {
   const userId = req.user.id;
-  db.all(`SELECT mesAno, porcentagem FROM frequenciasAnteriores WHERE userId = ? ORDER BY mesAno DESC`, [userId], (err, rows) => {
-    if (err) return res.status(500).send('Erro ao buscar histórico.');
+
+  try {
+    const { rows } = await pool.query(
+      `SELECT mesAno, porcentagem FROM frequenciasAnteriores WHERE userId = $1 ORDER BY mesAno DESC`,
+      [userId]
+    );
     res.json(rows);
-  });
+  } catch (err) {
+    console.error('❌ Erro ao buscar histórico de frequência:', err);
+    res.status(500).send('Erro ao buscar histórico.');
+  }
 });
+
 
 // --- TAREFAS (professor) ---
-app.get('/api/tarefas/professor', authenticateToken, (req, res) => {
+app.get('/api/tarefas/professor', authenticateToken, async (req, res) => {
   const userId = req.user.id;
-  const sql = `
-    SELECT id, titulo, descricao, prazo, turmas, recompensaGold, createdAt
-    FROM tarefas
-    WHERE professorId = ?
-    ORDER BY createdAt DESC
-  `;
-  db.all(sql, [userId], (err, rows) => {
-    if (err) {
-      console.error('Erro ao buscar tarefas:', err);
-      return res.status(500).json({ error: 'Erro ao buscar tarefas.' });
-    }
+  try {
+    const { rows } = await pool.query(`
+      SELECT id, titulo, descricao, prazo, turmas, recompensaGold, createdAt
+      FROM tarefas
+      WHERE professorId = $1
+      ORDER BY createdAt DESC
+    `, [userId]);
+
     const tarefas = rows.map(row => {
       let turmasArray = [];
       try {
@@ -700,126 +712,150 @@ app.get('/api/tarefas/professor', authenticateToken, (req, res) => {
           turmasArray = JSON.parse(row.turmas);
         }
       } catch {
-        console.warn('JSON inválido em turmas para tarefa ID:', row.id, row.turmas);
-        turmasArray = [];
+        console.warn('⚠️ JSON inválido em turmas para tarefa ID:', row.id);
       }
+
       return {
         id: row.id,
         titulo: row.titulo,
         descricao: row.descricao,
         prazo: row.prazo,
         turmas: turmasArray,
-        recompensaGold: row.recompensaGold || 0,
-        createdAt: row.createdAt
+        recompensaGold: row.recompensagold || 0,
+        createdAt: row.createdat
       };
     });
+
     res.json(tarefas);
-  });
+  } catch (err) {
+    console.error('❌ Erro ao buscar tarefas:', err);
+    res.status(500).json({ error: 'Erro ao buscar tarefas.' });
+  }
 });
 
-app.get('/api/tarefas/professor/:tarefaId/alunos', authenticateToken, (req, res) => {
+app.get('/api/tarefas/professor/:tarefaId/alunos', authenticateToken, async (req, res) => {
   const professorId = req.user.id;
   const tarefaId = req.params.tarefaId;
 
-  db.get(`SELECT turmas FROM tarefas WHERE id = ? AND professorId = ?`, [tarefaId, professorId], (err, tarefaRow) => {
-    if (err) return res.status(500).json({ error: 'Erro ao buscar tarefa.' });
-    if (!tarefaRow) return res.status(404).json({ error: 'Tarefa não encontrada.' });
+  try {
+    // Busca a tarefa
+    const { rows: tarefaRows } = await pool.query(
+      `SELECT turmas FROM tarefas WHERE id = $1 AND professorId = $2`,
+      [tarefaId, professorId]
+    );
+
+    if (tarefaRows.length === 0) {
+      return res.status(404).json({ error: 'Tarefa não encontrada.' });
+    }
 
     let turmasIds;
-    try { turmasIds = JSON.parse(tarefaRow.turmas); }
-    catch { return res.status(500).json({ error: 'Dados da tarefa corrompidos.' }); }
+    try {
+      turmasIds = JSON.parse(tarefaRows[0].turmas);
+    } catch {
+      return res.status(500).json({ error: 'Dados da tarefa corrompidos.' });
+    }
 
-    if (!Array.isArray(turmasIds) || turmasIds.length === 0) return res.json([]);
+    if (!Array.isArray(turmasIds) || turmasIds.length === 0) {
+      return res.json([]);
+    }
 
-    const placeholders = turmasIds.map(() => '?').join(',');
-    const sqlAlunos = `
-      SELECT a.data, t.userId as professorId
-      FROM alunos a
-      JOIN turmas t ON a.userId = t.userId
-      WHERE t.id IN (${placeholders})
-    `;
+    // Busca os alunos vinculados às turmas do professor
+    const { rows: alunosRows } = await pool.query(
+      `SELECT a.data, t.userId AS professorId
+       FROM alunos a
+       JOIN turmas t ON a.userId = t.userId
+       WHERE t.id = ANY($1::int[])`,
+      [turmasIds]
+    );
 
-    db.all(sqlAlunos, turmasIds, (err2, rows) => {
-      if (err2) return res.status(500).json({ error: 'Erro ao buscar alunos.' });
-
-      const todosAlunos = [];
-      rows.forEach(row => {
-        try {
-          const alunosDoProfessor = JSON.parse(row.data);
-          alunosDoProfessor.forEach(aluno => {
-            if (aluno.turmas && aluno.turmas.some(tid => turmasIds.includes(tid))) {
-              todosAlunos.push({ ctr: aluno.ctr, nome: aluno.nome, userId: aluno.userId });
-            }
-          });
-        } catch (e) { console.error('Erro ao parsear alunos:', e); }
-      });
-
-      // únicos por ctr
-      const unicos = [];
-      const vistos = new Set();
-      todosAlunos.forEach(a => { if (!vistos.has(a.ctr)) { vistos.add(a.ctr); unicos.push(a); } });
-
-      if (unicos.length === 0) return res.json([]);
-
-      const ids = unicos.map(a => a.userId);
-      const placeholders2 = ids.map(() => '?').join(',');
-      const sqlConclusoes = `
-        SELECT alunoId, entregue, corrigida, dataEntrega, fotoEntrega
-        FROM conclusoesTarefas
-        WHERE tarefaId = ? AND alunoId IN (${placeholders2})
-      `;
-
-      db.all(sqlConclusoes, [tarefaId, ...ids], (err3, conclusoes) => {
-        if (err3) return res.status(500).json({ error: 'Erro ao buscar status.' });
-
-        const conclusaoMap = {};
-        conclusoes.forEach(c => {
-          conclusaoMap[c.alunoId] = {
-            entregue: !!c.entregue,
-            corrigida: !!c.corrigida,
-            dataEntrega: c.dataEntrega,
-            fotoEntrega: c.fotoEntrega
-          };
-        });
-
-        const resultado = unicos.map(aluno => ({
-          id: aluno.userId,
-          ctr: aluno.ctr,
-          nome: aluno.nome,
-          ...conclusaoMap[aluno.userId] || {
-            entregue: false, corrigida: false, dataEntrega: null, fotoEntrega: null
+    const todosAlunos = [];
+    alunosRows.forEach(row => {
+      try {
+        const alunosDoProfessor = JSON.parse(row.data);
+        alunosDoProfessor.forEach(aluno => {
+          if (aluno.turmas?.some(tid => turmasIds.includes(tid))) {
+            todosAlunos.push({
+              ctr: aluno.ctr,
+              nome: aluno.nome,
+              userId: aluno.userId
+            });
           }
-        }));
-        res.json(resultado);
-      });
+        });
+      } catch (e) {
+        console.error('❌ Erro ao parsear alunos:', e);
+      }
     });
-  });
+
+    // Remove duplicados por `ctr`
+    const vistos = new Set();
+    const unicos = todosAlunos.filter(a => {
+      if (vistos.has(a.ctr)) return false;
+      vistos.add(a.ctr);
+      return true;
+    });
+
+    if (unicos.length === 0) return res.json([]);
+
+    const ids = unicos.map(a => a.userId);
+    const { rows: conclusoes } = await pool.query(
+      `SELECT alunoId, entregue, corrigida, dataEntrega, fotoEntrega
+       FROM conclusoesTarefas
+       WHERE tarefaId = $1 AND alunoId = ANY($2::int[])`,
+      [tarefaId, ids]
+    );
+
+    const conclusaoMap = {};
+    conclusoes.forEach(c => {
+      conclusaoMap[c.alunoid] = {
+        entregue: !!c.entregue,
+        corrigida: !!c.corrigida,
+        dataEntrega: c.dataentrega,
+        fotoEntrega: c.fotoentrega
+      };
+    });
+
+    const resultado = unicos.map(aluno => ({
+      id: aluno.userId,
+      ctr: aluno.ctr,
+      nome: aluno.nome,
+      ...conclusaoMap[aluno.userId] || {
+        entregue: false, corrigida: false, dataEntrega: null, fotoEntrega: null
+      }
+    }));
+
+    res.json(resultado);
+  } catch (err) {
+    console.error('❌ Erro ao buscar alunos da tarefa:', err);
+    res.status(500).json({ error: 'Erro ao buscar alunos da tarefa.' });
+  }
 });
 
-app.delete('/api/tarefas/:id', authenticateToken, (req, res) => {
+
+app.delete('/api/tarefas/:id', authenticateToken, async (req, res) => {
   const professorId = req.user.id;
   const tarefaId = req.params.id;
 
-  db.run(`DELETE FROM conclusoesTarefas WHERE tarefaId = ?`, [tarefaId], function (err) {
-    if (err) {
-      console.error('Erro ao deletar conclusões da tarefa:', err);
-      return res.status(500).json({ error: 'Erro ao limpar dados associados à tarefa.' });
+  try {
+    // Exclui conclusões associadas
+    await pool.query(`DELETE FROM conclusoesTarefas WHERE tarefaId = $1`, [tarefaId]);
+
+    const result = await pool.query(
+      `DELETE FROM tarefas WHERE id = $1 AND professorId = $2`,
+      [tarefaId, professorId]
+    );
+
+    if (result.rowCount === 0) {
+      return res.status(404).json({ error: 'Tarefa não encontrada ou não pertence a este usuário.' });
     }
 
-    db.run(`DELETE FROM tarefas WHERE id = ? AND professorId = ?`, [tarefaId, professorId], function (err2) {
-      if (err2) {
-        console.error('Erro ao deletar tarefa:', err2);
-        return res.status(500).json({ error: 'Erro ao deletar tarefa no banco.' });
-      }
-      if (this.changes === 0) {
-        return res.status(404).json({ error: 'Tarefa não encontrada ou não pertence a este usuário.' });
-      }
-      res.json({ success: true, message: 'Tarefa deletada com sucesso.' });
-    });
-  });
+    res.json({ success: true, message: 'Tarefa deletada com sucesso.' });
+  } catch (err) {
+    console.error('❌ Erro ao deletar tarefa:', err);
+    res.status(500).json({ error: 'Erro ao deletar tarefa.' });
+  }
 });
 
-app.put('/api/tarefas/:id', authenticateToken, (req, res) => {
+app.put('/api/tarefas/:id', authenticateToken, async (req, res) => {
   const professorId = req.user.id;
   const tarefaId = req.params.id;
   const { titulo, descricao, prazo, turmas, recompensaGold } = req.body;
@@ -828,33 +864,25 @@ app.put('/api/tarefas/:id', authenticateToken, (req, res) => {
     return res.status(400).json({ error: 'Título e pelo menos uma turma são obrigatórios.' });
   }
 
-  const sql = `
-    UPDATE tarefas SET
-      titulo = ?,
-      descricao = ?,
-      prazo = ?,
-      turmas = ?,
-      recompensaGold = ?
-    WHERE id = ? AND professorId = ?
-  `;
-  db.run(sql, [
-    titulo,
-    descricao || '',
-    prazo || '',
-    JSON.stringify(turmas),
-    recompensaGold || 0,
-    tarefaId,
-    professorId
-  ], function (err) {
-    if (err) return res.status(500).json({ error: 'Erro ao atualizar tarefa.' });
-    if (this.changes === 0) {
+  try {
+    const result = await pool.query(`
+      UPDATE tarefas
+      SET titulo = $1, descricao = $2, prazo = $3, turmas = $4, recompensaGold = $5
+      WHERE id = $6 AND professorId = $7
+    `, [titulo, descricao || '', prazo || '', JSON.stringify(turmas), recompensaGold || 0, tarefaId, professorId]);
+
+    if (result.rowCount === 0) {
       return res.status(404).json({ error: 'Tarefa não encontrada ou não pertence a este usuário.' });
     }
+
     res.json({ success: true, message: 'Tarefa atualizada com sucesso.', recompensaGold: recompensaGold || 0 });
-  });
+  } catch (err) {
+    console.error('❌ Erro ao atualizar tarefa:', err);
+    res.status(500).json({ error: 'Erro ao atualizar tarefa.' });
+  }
 });
 
-app.post('/api/tarefas', authenticateToken, (req, res) => {
+app.post('/api/tarefas', authenticateToken, async (req, res) => {
   const { titulo, descricao, prazo, turmas, recompensaGold } = req.body;
   const professorId = req.user.id;
 
@@ -863,25 +891,27 @@ app.post('/api/tarefas', authenticateToken, (req, res) => {
   }
 
   const createdAt = new Date().toISOString();
-  const sql = `
-    INSERT INTO tarefas (professorId, titulo, descricao, prazo, turmas, recompensaGold, createdAt)
-    VALUES (?, ?, ?, ?, ?, ?, ?)
-    RETURNING id
-  `;
-  db.get(sql, [
-    professorId,
-    titulo,
-    descricao || '',
-    prazo || '',
-    JSON.stringify(turmas),
-    recompensaGold || 0,
-    createdAt
-  ], (err, row) => {
-    if (err) return res.status(500).json({ error: 'Erro ao salvar tarefa.' });
+
+  try {
+    const { rows } = await pool.query(`
+      INSERT INTO tarefas (professorId, titulo, descricao, prazo, turmas, recompensaGold, createdAt)
+      VALUES ($1, $2, $3, $4, $5, $6, $7)
+      RETURNING id
+    `, [professorId, titulo, descricao || '', prazo || '', JSON.stringify(turmas), recompensaGold || 0, createdAt]);
+
     res.status(201).json({
-      id: row.id, titulo, descricao, prazo, turmas, recompensaGold: recompensaGold || 0, createdAt
+      id: rows[0].id,
+      titulo,
+      descricao,
+      prazo,
+      turmas,
+      recompensaGold: recompensaGold || 0,
+      createdAt
     });
-  });
+  } catch (err) {
+    console.error('❌ Erro ao salvar tarefa:', err);
+    res.status(500).json({ error: 'Erro ao salvar tarefa.' });
+  }
 });
 
 // --- TAREFAS (aluno) ---
@@ -889,61 +919,68 @@ app.get('/api/tarefas/aluno', authenticateToken, async (req, res) => {
   const alunoId = req.user.id;
 
   try {
-    const alunoRows = await new Promise((resolve, reject) => {
-      db.all(`SELECT data FROM alunos`, (err, rows) => err ? reject(err) : resolve(rows));
-    });
-    if (!alunoRows || alunoRows.length === 0) return res.json([]);
+    // Busca todos os alunos cadastrados
+    const { rows: alunoRows } = await pool.query(`SELECT data FROM alunos`);
+    if (!alunoRows?.length) return res.json([]);
 
-    let alunoData;
+    // Localiza os dados do aluno
+    let alunoData = null;
     for (const row of alunoRows) {
-      const alunos = JSON.parse(row.data);
-      const encontrado = alunos.find(a => a.userId === alunoId);
-      if (encontrado) { alunoData = encontrado; break; }
+      try {
+        const alunos = JSON.parse(row.data);
+        const encontrado = alunos.find(a => a.userId === alunoId);
+        if (encontrado) {
+          alunoData = encontrado;
+          break;
+        }
+      } catch {}
     }
+
     if (!alunoData?.turmas?.length) return res.json([]);
     const turmasDoAluno = new Set(alunoData.turmas);
 
-    const todasAsTarefas = await new Promise((resolve, reject) => {
-      const sql = `
-        SELECT 
-          t.id, t.titulo, t.descricao, t.prazo, t.createdAt, t.turmas, t.recompensaGold,
-          ct.entregue, ct.corrigida, ct.dataEntrega, ct.fotoEntrega
-        FROM tarefas t
-        LEFT JOIN conclusoesTarefas ct ON t.id = ct.tarefaId AND ct.alunoId = ?
-        ORDER BY t.createdAt DESC
-      `;
-      db.all(sql, [alunoId], (err, rows) => err ? reject(err) : resolve(rows));
-    });
+    // Busca todas as tarefas e suas conclusões
+    const { rows: tarefas } = await pool.query(`
+      SELECT 
+        t.id, t.titulo, t.descricao, t.prazo, t.createdAt, t.turmas, t.recompensaGold,
+        ct.entregue, ct.corrigida, ct.dataEntrega, ct.fotoEntrega
+      FROM tarefas t
+      LEFT JOIN conclusoesTarefas ct ON t.id = ct.tarefaId AND ct.alunoId = $1
+      ORDER BY t.createdAt DESC
+    `, [alunoId]);
 
-    const tarefasDoAluno = todasAsTarefas
-      .filter(tarefa => {
+    const tarefasDoAluno = tarefas
+      .filter(t => {
         try {
-          const turmasDaTarefa = JSON.parse(tarefa.turmas);
+          const turmasDaTarefa = JSON.parse(t.turmas);
           return turmasDaTarefa.some(turmaId => turmasDoAluno.has(turmaId));
-        } catch { return false; }
+        } catch {
+          return false;
+        }
       })
       .map(t => ({
         id: t.id,
         titulo: t.titulo,
         descricao: t.descricao,
         prazo: t.prazo,
-        createdAt: t.createdAt,
-        recompensaGold: t.recompensaGold || 0,
+        createdAt: t.createdat,
+        recompensaGold: t.recompensagold || 0,
         entregue: !!t.entregue,
         corrigida: !!t.corrigida,
-        dataEntrega: t.dataEntrega,
-        fotoEntrega: t.fotoEntrega
+        dataEntrega: t.dataentrega,
+        fotoEntrega: t.fotoentrega
       }));
 
     res.json(tarefasDoAluno);
   } catch (err) {
-    console.error('Erro ao buscar tarefas do aluno:', err);
+    console.error('❌ Erro ao buscar tarefas do aluno:', err);
     res.status(500).json({ error: 'Erro interno ao buscar tarefas.' });
   }
 });
 
+
 // Aluno entrega tarefa (com foto)
-app.post('/api/tarefas/entregar', authenticateToken, upload.single('foto'), (req, res) => {
+app.post('/api/tarefas/entregar', authenticateToken, upload.single('foto'), async (req, res) => {
   const { tarefaId } = req.body;
   const alunoId = req.user.id;
   const foto = req.file;
@@ -955,26 +992,28 @@ app.post('/api/tarefas/entregar', authenticateToken, upload.single('foto'), (req
   const agora = new Date().toISOString();
 
   const sql = `
-    INSERT INTO conclusoesTarefas (
-      tarefaId, alunoId, entregue, dataEntrega, fotoEntrega, concluido, dataConclusao
-    ) VALUES (?, ?, 1, ?, ?, 1, ?)
-    ON CONFLICT(tarefaId, alunoId) DO UPDATE SET
-      entregue = 1,
-      dataEntrega = ?,
-      fotoEntrega = ?,
-      concluido = 1,
-      dataConclusao = ?
+    INSERT INTO conclusoesTarefas 
+      (tarefaId, alunoId, entregue, dataEntrega, fotoEntrega, concluido, dataConclusao)
+    VALUES ($1, $2, true, $3, $4, true, $5)
+    ON CONFLICT (tarefaId, alunoId) DO UPDATE
+      SET entregue = true,
+          dataEntrega = EXCLUDED.dataEntrega,
+          fotoEntrega = EXCLUDED.fotoEntrega,
+          concluido = true,
+          dataConclusao = EXCLUDED.dataConclusao
   `;
-  db.run(sql, [tarefaId, alunoId, agora, fotoBase64, agora, agora, fotoBase64, agora], function (err) {
-    if (err) {
-      console.error('Erro ao entregar tarefa:', err);
-      return res.status(500).json({ message: 'Erro ao salvar entrega.' });
-    }
+
+  try {
+    await pool.query(sql, [tarefaId, alunoId, agora, fotoBase64, agora]);
     res.json({ success: true, message: 'Tarefa entregue com sucesso!' });
-  });
+  } catch (err) {
+    console.error('❌ Erro ao entregar tarefa:', err);
+    res.status(500).json({ message: 'Erro ao salvar entrega.' });
+  }
 });
 
-app.post('/api/tarefas/corrigir', authenticateToken, (req, res) => {
+
+app.post('/api/tarefas/corrigir', authenticateToken, async (req, res) => {
   const { alunoId, tarefaId, status } = req.body;
   const agora = new Date().toISOString();
 
@@ -982,251 +1021,267 @@ app.post('/api/tarefas/corrigir', authenticateToken, (req, res) => {
     return res.status(400).json({ message: 'Dados inválidos.' });
   }
 
-  const corrigidaValue = 1;
-  const sqlUpdate = `
-    UPDATE conclusoesTarefas
-    SET corrigida = ?, dataCorrecao = ?
-    WHERE tarefaId = ? AND alunoId = ?
-  `;
-
-  db.run(sqlUpdate, [corrigidaValue, agora, tarefaId, alunoId], function (err) {
-    if (err) {
-      console.error('❌ Erro ao atualizar conclusoesTarefas:', err);
-      return res.status(500).json({ message: 'Erro ao atualizar status.' });
-    }
-    if (this.changes === 0) {
+  try {
+    // Marca como corrigida
+    const updateSql = `
+      UPDATE conclusoesTarefas
+      SET corrigida = true, dataCorrecao = $1
+      WHERE tarefaId = $2 AND alunoId = $3
+    `;
+    const result = await pool.query(updateSql, [agora, tarefaId, alunoId]);
+    if (result.rowCount === 0) {
       return res.status(404).json({ message: 'Entrega não encontrada.' });
     }
 
-    if (status === 'completo') {
-      db.get('SELECT recompensaGold FROM tarefas WHERE id = ?', [tarefaId], (errT, tarefa) => {
-        if (errT || !tarefa || tarefa.recompensaGold <= 0) {
-          return res.json({ success: true, message: 'Tarefa corrigida (sem recompensa).' });
-        }
-        const recompensa = tarefa.recompensaGold;
-
-        db.get('SELECT username FROM users WHERE id = ?', [alunoId], (errU, userRow) => {
-          if (errU || !userRow) return res.status(404).json({ message: 'Aluno não encontrado.' });
-
-          const alunoCtr = userRow.username;
-          db.all('SELECT userId, data FROM alunos', [], (errA, rows) => {
-            if (errA) return res.status(500).json({ message: 'Erro ao buscar dados.' });
-
-            let alunoAtualizado = false;
-            for (const row of rows) {
-              try {
-                const alunosArray = JSON.parse(row.data);
-                const idx = alunosArray.findIndex(a => a.ctr === alunoCtr);
-                if (idx !== -1) {
-                  alunosArray[idx].gold = (alunosArray[idx].gold || 0) + recompensa;
-                  db.run('UPDATE alunos SET data = ? WHERE userId = ?', [JSON.stringify(alunosArray), row.userId], (e) => {
-                    if (e) console.error('❌ Erro ao salvar gold:', e);
-                  });
-                  alunoAtualizado = true;
-                  break;
-                }
-              } catch {}
-            }
-            if (!alunoAtualizado) {
-              return res.status(404).json({ message: 'Aluno não encontrado para recompensa.' });
-            }
-            res.json({ success: true, message: `+${recompensa} golds creditados!` });
-          });
-        });
-      });
-    } else {
-      res.json({ success: true, message: 'Tarefa marcada como incompleta.' });
+    if (status === 'incompleto') {
+      return res.json({ success: true, message: 'Tarefa marcada como incompleta.' });
     }
-  });
+
+    // Busca recompensa da tarefa
+    const { rows: tarefaRows } = await pool.query(
+      `SELECT recompensaGold FROM tarefas WHERE id = $1`,
+      [tarefaId]
+    );
+    if (!tarefaRows.length || tarefaRows[0].recompensagold <= 0) {
+      return res.json({ success: true, message: 'Tarefa corrigida (sem recompensa).' });
+    }
+
+    const recompensa = tarefaRows[0].recompensagold;
+
+    // Localiza o aluno dentro do JSON de alunos e adiciona gold
+    const { rows: alunosRows } = await pool.query(`SELECT userId, data FROM alunos`);
+    for (const row of alunosRows) {
+      try {
+        const alunosArray = JSON.parse(row.data);
+        const idx = alunosArray.findIndex(a => a.userId === alunoId);
+        if (idx !== -1) {
+          alunosArray[idx].gold = (alunosArray[idx].gold || 0) + recompensa;
+          await pool.query(
+            `UPDATE alunos SET data = $1 WHERE userId = $2`,
+            [JSON.stringify(alunosArray), row.userid]
+          );
+          return res.json({ success: true, message: `+${recompensa} golds creditados!` });
+        }
+      } catch (e) {
+        console.error('❌ Erro ao atualizar gold do aluno:', e);
+      }
+    }
+
+    res.status(404).json({ message: 'Aluno não encontrado para recompensa.' });
+  } catch (err) {
+    console.error('❌ Erro ao corrigir tarefa:', err);
+    res.status(500).json({ message: 'Erro ao atualizar status.' });
+  }
 });
 
-app.post('/api/tarefas/concluir', authenticateToken, (req, res) => {
+
+app.post('/api/tarefas/concluir', authenticateToken, async (req, res) => {
   const { tarefaId } = req.body;
   const alunoId = req.user.id;
   const agora = new Date().toISOString();
 
   const sql = `
     INSERT INTO conclusoesTarefas (tarefaId, alunoId, concluido, dataConclusao)
-    VALUES (?, ?, 1, ?)
-    ON CONFLICT(tarefaId, alunoId) DO UPDATE SET
-      concluido = 1, dataConclusao = ?
+    VALUES ($1, $2, true, $3)
+    ON CONFLICT (tarefaId, alunoId) DO UPDATE
+      SET concluido = true, dataConclusao = EXCLUDED.dataConclusao
   `;
-  db.run(sql, [tarefaId, alunoId, agora, agora], function (err) {
-    if (err) return res.status(500).json({ error: 'Erro ao concluir tarefa.' });
+
+  try {
+    await pool.query(sql, [tarefaId, alunoId, agora]);
     res.json({ success: true });
-  });
+  } catch (err) {
+    console.error('❌ Erro ao concluir tarefa:', err);
+    res.status(500).json({ error: 'Erro ao concluir tarefa.' });
+  }
 });
+
+
 
 // --- LOJA ---
-app.post('/api/itens', authenticateToken, (req, res) => {
-  const { role } = req.user;
-  if (role !== 'professor' && role !== 'admin') {
-    return res.status(403).json({ error: 'Apenas professores podem criar itens.' });
-  }
-
+app.post('/api/itens', authenticateToken, async (req, res) => {
+  const userId = req.user.id;
   const { nome, descricao, efeito, slot, power, preco, icone, privado } = req.body;
-  if (!nome || !descricao || !efeito || !slot || power == null || preco == null || !icone) {
-    return res.status(400).json({ error: 'Todos os campos são obrigatórios.' });
-  }
-  if (typeof power !== 'number' || power < 1) {
-    return res.status(400).json({ error: 'Power deve ser um número >= 1.' });
-  }
-  if (typeof preco !== 'number' || preco < 1) {
-    return res.status(400).json({ error: 'Preço deve ser um número >= 1.' });
-  }
-  const slotsPermitidos = ['cabeca', 'camisa', 'calca', 'pes', 'artefato'];
-  if (!slotsPermitidos.includes(slot)) {
-    return res.status(400).json({ error: 'Slot inválido.' });
+
+  if (!nome || !efeito || !slot || !preco || !icone) {
+    return res.status(400).json({ message: 'Campos obrigatórios ausentes.' });
   }
 
-  const sql = `
-    INSERT INTO itens_loja (nome, descricao, efeito, slot, power, preco, icone, privado, criadoPor)
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
-    RETURNING id
-  `;
-  db.get(sql, [
-    nome, descricao, efeito, slot, power, preco, icone, !!privado, req.user.id
-  ], (err, row) => {
-    if (err) {
-      console.error('Erro ao criar item:', err);
-      return res.status(500).json({ error: 'Erro ao salvar item.' });
-    }
-    res.status(201).json({
-      id: row.id, nome, descricao, efeito, slot, power, preco, privado: !!privado, icone
-    });
-  });
+  try {
+    await pool.query(
+      `INSERT INTO itens_loja (nome, descricao, efeito, slot, power, preco, icone, privado, criadoPor)
+       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9)`,
+      [nome, descricao || '', efeito, slot, power || 0, preco, icone, privado || false, userId]
+    );
+    res.json({ success: true, message: 'Item criado com sucesso!' });
+  } catch (err) {
+    console.error('❌ Erro ao criar item:', err);
+    res.status(500).json({ message: 'Erro ao criar item.' });
+  }
 });
 
-app.get('/api/itens', authenticateToken, (req, res) => {
-  db.all(`SELECT id, nome, descricao, efeito, slot, power, preco, icone FROM itens_loja WHERE privado = 0`, [], (err, rows) => {
-    if (err) return res.status(500).json({ error: 'Erro ao carregar itens.' });
+
+
+app.get('/api/itens', authenticateToken, async (req, res) => {
+  const userId = req.user.id;
+  try {
+    const sql = `
+      SELECT * FROM itens_loja
+      WHERE privado = false OR criadoPor = $1
+      ORDER BY preco ASC
+    `;
+    const { rows } = await pool.query(sql, [userId]);
     res.json(rows);
-  });
+  } catch (err) {
+    console.error('❌ Erro ao buscar itens:', err);
+    res.status(500).json({ message: 'Erro ao buscar itens.' });
+  }
 });
 
-app.get('/api/itens/professor', authenticateToken, (req, res) => {
+
+app.get('/api/itens/professor', authenticateToken, async (req, res) => {
   if (req.user.role !== 'professor' && req.user.role !== 'admin') {
     return res.status(403).json({ error: 'Acesso negado: apenas professores podem acessar esta lista.' });
   }
-  db.all(`SELECT id, nome, descricao, efeito, slot, power, preco, icone FROM itens_loja`, [], (err, rows) => {
-    if (err) return res.status(500).json({ error: 'Erro ao carregar itens.' });
-    res.json(rows);
-  });
+
+  try {
+    const sql = `SELECT id, nome, descricao, efeito, slot, power, preco, icone, privado, criadoPor FROM itens_loja ORDER BY id DESC`;
+    const { rows } = await pool.query(sql);
+
+    // normaliza o campo criadoPor caso o driver tenha retornado em lowercase (criadopor)
+    const normalized = rows.map(r => {
+      const item = { ...r };
+      if (item.criadopor !== undefined && item.criadoPor === undefined) item.criadoPor = item.criadopor;
+      return item;
+    });
+
+    res.json(normalized);
+  } catch (err) {
+    console.error('Erro ao carregar itens (professor):', err);
+    res.status(500).json({ error: 'Erro ao carregar itens.' });
+  }
 });
 
-app.get('/api/itens/:id', authenticateToken, (req, res) => {
+app.get('/api/itens/:id', authenticateToken, async (req, res) => {
   const itemId = req.params.id;
-  db.get(`SELECT * FROM itens_loja WHERE id = ?`, [itemId], (err, item) => {
-    if (err || !item) return res.status(404).json({ error: 'Item não encontrado.' });
+  try {
+    const { rows } = await pool.query(`SELECT * FROM itens_loja WHERE id = $1`, [itemId]);
+    if (!rows.length) return res.status(404).json({ error: 'Item não encontrado.' });
+
+    const item = { ...rows[0] };
+    // remove qualquer variação do campo criadoPor/criadopor para não vazar informação sensível
     delete item.criadoPor;
+    delete item.criadopor;
+
     res.json(item);
-  });
+  } catch (err) {
+    console.error('Erro ao buscar item:', err);
+    res.status(500).json({ error: 'Erro ao carregar item.' });
+  }
 });
 
-app.delete('/api/itens/:id', authenticateToken, (req, res) => {
+
+app.delete('/api/itens/:id', authenticateToken, async (req, res) => {
+  const userId = req.user.id;
+  const { id } = req.params;
+
+  try {
+    const { rows } = await pool.query(`SELECT * FROM itens_loja WHERE id = $1`, [id]);
+    if (!rows.length) return res.status(404).json({ message: 'Item não encontrado.' });
+
+    const item = rows[0];
+    if (item.criadopor !== userId) {
+      return res.status(403).json({ message: 'Sem permissão para excluir este item.' });
+    }
+
+    await pool.query(`DELETE FROM itens_loja WHERE id = $1`, [id]);
+    res.json({ success: true, message: 'Item removido com sucesso.' });
+  } catch (err) {
+    console.error('❌ Erro ao deletar item:', err);
+    res.status(500).json({ message: 'Erro ao deletar item.' });
+  }
+});
+
+
+
+app.patch('/api/itens/:id/privar', authenticateToken, async (req, res) => {
   if (req.user.role !== 'professor' && req.user.role !== 'admin') {
     return res.status(403).json({ error: 'Acesso negado.' });
   }
+
   const itemId = req.params.id;
-  db.run(`DELETE FROM itens_loja WHERE id = ? AND criadoPor = ?`, [itemId, req.user.id], function (err) {
-    if (err) return res.status(500).json({ error: 'Erro ao excluir item.' });
-    if (this.changes === 0) {
+  // força booleano
+  const novoPrivado = !!req.body.privado;
+
+  try {
+    const sql = `UPDATE itens_loja SET privado = $1 WHERE id = $2 AND criadoPor = $3`;
+    const result = await pool.query(sql, [novoPrivado, itemId, req.user.id]);
+
+    if (result.rowCount === 0) {
       return res.status(404).json({ error: 'Item não encontrado ou não pertence a você.' });
     }
-    res.json({ success: true });
-  });
-});
 
-app.patch('/api/itens/:id/privar', authenticateToken, (req, res) => {
-  if (req.user.role !== 'professor' && req.user.role !== 'admin') {
-    return res.status(403).json({ error: 'Acesso negado.' });
+    res.json({ success: true, privado: novoPrivado });
+  } catch (err) {
+    console.error('Erro ao atualizar item (privado):', err);
+    res.status(500).json({ error: 'Erro ao atualizar item.' });
   }
-  const { privado } = req.body;
-  const itemId = req.params.id;
-  const valorPrivado = privado ? 1 : 0;
-
-  db.run(
-    `UPDATE itens_loja SET privado = ? WHERE id = ? AND criadoPor = ?`,
-    [valorPrivado, itemId, req.user.id],
-    function (err) {
-      if (err) {
-        console.error('Erro ao atualizar item:', err);
-        return res.status(500).json({ error: 'Erro ao atualizar item.' });
-      }
-      if (this.changes === 0) {
-        return res.status(404).json({ error: 'Item não encontrado ou não pertence a você.' });
-      }
-      res.json({ success: true, privado: valorPrivado });
-    }
-  );
 });
 
-app.post('/api/comprar', authenticateToken, (req, res) => {
-  const { itemId } = req.body;
+
+app.post('/api/comprar', authenticateToken, async (req, res) => {
   const alunoId = req.user.id;
-  const alunoCtr = req.user.username;
+  const { itemId } = req.body;
 
-  if (!itemId) return res.status(400).json({ error: 'ID do item é obrigatório.' });
+  try {
+    const { rows: itens } = await pool.query(`SELECT * FROM itens_loja WHERE id = $1`, [itemId]);
+    if (!itens.length) return res.status(404).json({ message: 'Item não encontrado.' });
 
-  db.get(`SELECT * FROM itens_loja WHERE id = ?`, [itemId], (err, item) => {
-    if (err || !item) return res.status(404).json({ error: 'Item não encontrado.' });
-    if (item.privado === 1) return res.status(403).json({ error: 'Item não disponível para compra.' });
+    const item = itens[0];
 
-    db.all(`SELECT userId, data FROM alunos`, [], (err2, allAlunosRows) => {
-      if (err2) return res.status(500).json({ error: 'Erro ao buscar dados de alunos.' });
+    // Carrega todos os grupos de alunos
+    const { rows: grupos } = await pool.query(`SELECT id, userId, data FROM alunos`);
 
-      let alunoEncontrado = null;
-      let professorUserId = null;
-      let alunosDoProfessor = null;
-      let alunoIndex = -1;
-
-      for (const row of allAlunosRows) {
-        try {
-          const alunos = JSON.parse(row.data);
-          const index = alunos.findIndex(a => a.ctr === alunoCtr);
-          if (index !== -1) {
-            alunoEncontrado = alunos[index];
-            professorUserId = row.userId;
-            alunosDoProfessor = alunos;
-            alunoIndex = index;
-            break;
-          }
-        } catch {}
+    for (const grupo of grupos) {
+      let alunosArray;
+      try {
+        alunosArray = JSON.parse(grupo.data);
+      } catch {
+        alunosArray = [];
       }
 
-      if (!alunoEncontrado) {
-        return res.status(404).json({ error: 'Seu perfil de aluno não foi encontrado.' });
-      }
+      const idx = alunosArray.findIndex(a => a.userId === alunoId);
+      if (idx !== -1) {
+        const aluno = alunosArray[idx];
 
-      const gold = alunoEncontrado.gold || 0;
-      const preco = item.preco;
-      if (gold < preco) {
-        return res.status(400).json({ error: 'Gold insuficiente.' });
-      }
-
-      alunoEncontrado.gold = gold - preco;
-      if (!alunoEncontrado.mochila) alunoEncontrado.mochila = [];
-      alunoEncontrado.mochila.push({
-        id: item.id,
-        nome: item.nome,
-        icone: item.icone,
-        slot: item.slot,
-        power: item.power,
-        efeito: item.efeito
-      });
-
-      alunosDoProfessor[alunoIndex] = alunoEncontrado;
-      db.run(
-        `UPDATE alunos SET data = ? WHERE userId = ?`,
-        [JSON.stringify(alunosDoProfessor), professorUserId],
-        (err3) => {
-          if (err3) return res.status(500).json({ error: 'Erro ao salvar compra.' });
-          res.json({ success: true, novoGold: alunoEncontrado.gold, itemComprado: item });
+        if ((aluno.gold || 0) < item.preco) {
+          return res.status(400).json({ message: 'Gold insuficiente.' });
         }
-      );
-    });
-  });
+
+        aluno.gold -= item.preco;
+        aluno.equipamentos = aluno.equipamentos || {};
+        aluno.equipamentos[item.slot] = item;
+
+        alunosArray[idx] = aluno;
+
+        await pool.query(`UPDATE alunos SET data = $1 WHERE id = $2`, [JSON.stringify(alunosArray), grupo.id]);
+
+        return res.json({
+          success: true,
+          message: `Você comprou ${item.nome}! (-${item.preco} 🪙)`,
+          novoSaldo: aluno.gold,
+        });
+      }
+    }
+
+    res.status(404).json({ message: 'Aluno não encontrado.' });
+  } catch (err) {
+    console.error('❌ Erro ao comprar item:', err);
+    res.status(500).json({ message: 'Erro ao processar compra.' });
+  }
 });
+
+
 
 app.put('/api/student/profile', authenticateToken, (req, res) => {
   if (req.user.role !== 'student') {
