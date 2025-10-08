@@ -7,7 +7,7 @@ function setupLojaAluno() {
 async function carregarSaldo() {
     try {
         const token = localStorage.getItem('token');
-        const res = await fetch('http://localhost:3000/api/student/profile', {
+        const res = await fetch('/api/student/profile', {
             headers: { 'Authorization': `Bearer ${token}` }
         });
         const profile = await res.json();
@@ -22,7 +22,7 @@ async function carregarSaldo() {
 async function carregarItensLoja() {
     try {
         const token = localStorage.getItem('token');
-        const res = await fetch('http://localhost:3000/api/itens', {
+        const res = await fetch('/api/itens', {
             headers: { 'Authorization': `Bearer ${token}` }
         });
         const itens = await res.json();
@@ -63,7 +63,7 @@ async function comprarItem(e) {
     const itemId = e.target.dataset.id;
     try {
         const token = localStorage.getItem('token');
-        const res = await fetch('http://localhost:3000/api/comprar', {
+        const res = await fetch('/api/comprar', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',

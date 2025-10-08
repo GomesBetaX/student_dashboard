@@ -22,7 +22,7 @@ let alunos = [];
 async function createTurma(novaTurma) {
     const token = localStorage.getItem('token');
     try {
-        const res = await fetch('http://localhost:3000/api/turmas', {
+        const res = await fetch('/api/turmas', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
@@ -50,7 +50,7 @@ async function createTurma(novaTurma) {
 async function updateTurma(turma) {
     const token = localStorage.getItem('token');
     try {
-        const res = await fetch(`http://localhost:3000/api/turmas/${turma.id}`, {
+        const res = await fetch(`/api/turmas/${turma.id}`, {
             method: 'PUT',
             headers: {
                 'Content-Type': 'application/json',
@@ -78,7 +78,7 @@ async function updateTurma(turma) {
 async function deleteTurma(turmaId) {
     const token = localStorage.getItem('token');
     try {
-        const res = await fetch(`http://localhost:3000/api/turmas/${turmaId}`, {
+        const res = await fetch(`/api/turmas/${turmaId}`, {
             method: 'DELETE',
             headers: { 'Authorization': `Bearer ${token}` }
         });
@@ -99,7 +99,7 @@ async function deleteTurma(turmaId) {
  */
 async function saveAlunos(alunosData) {
     const token = localStorage.getItem('token');
-    await fetch('http://localhost:3000/api/alunos', {
+    await fetch('/api/alunos', {
         method: 'POST',
         headers: {
             'Content-Type': 'application/json',
@@ -116,7 +116,7 @@ async function saveAlunos(alunosData) {
 async function saveProfessor(professorData) {
     const token = localStorage.getItem('token');
     console.log('Salvando dados do professor:', professorData);
-    await fetch('http://localhost:3000/api/professor', {
+    await fetch('/api/professor', {
         method: 'PUT',
         headers: {
             'Content-Type': 'application/json',
@@ -135,7 +135,7 @@ async function saveProfessor(professorData) {
 async function createStudentUserAccount(name, ctr) {
     try {
         const token = localStorage.getItem('token');
-        const res = await fetch(`http://localhost:3000/api/auth/registerStudent`, {
+        const res = await fetch(`/api/auth/registerStudent`, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
@@ -182,7 +182,7 @@ async function createStudentUserAccount(name, ctr) {
  */
 async function loadTurmas() {
     const token = localStorage.getItem('token');
-    const res = await fetch('http://localhost:3000/api/turmas', {
+    const res = await fetch('/api/turmas', {
         headers: { 'Authorization': `Bearer ${token}` }
     });
     return res.ok ? await res.json() : [];
@@ -194,7 +194,7 @@ async function loadTurmas() {
  */
 async function loadAlunos() {
     const token = localStorage.getItem('token');
-    const res = await fetch('http://localhost:3000/api/alunos', {
+    const res = await fetch('/api/alunos', {
         headers: { 'Authorization': `Bearer ${token}` }
     });
     return res.ok ? await res.json() : [];
@@ -206,7 +206,7 @@ async function loadAlunos() {
  */
 async function loadProfessor() {
     const token = localStorage.getItem('token');
-    const res = await fetch('http://localhost:3000/api/professor', {
+    const res = await fetch('/api/professor', {
         headers: { 'Authorization': `Bearer ${token}` }
     });
     if (res.ok) {
@@ -295,7 +295,7 @@ let tarefas = [];
 // Carrega tarefas do backend
 async function loadTarefas() {
     const token = localStorage.getItem('token');
-    const res = await fetch('http://localhost:3000/api/tarefas/professor', {
+    const res = await fetch('/api/tarefas/professor', {
         headers: { 'Authorization': `Bearer ${token}` }
     });
     return res.ok ? await res.json() : [];
@@ -305,7 +305,7 @@ async function loadTarefas() {
 async function deleteTarefa(tarefaId) {
     const token = localStorage.getItem('token');
     try {
-        const res = await fetch(`http://localhost:3000/api/tarefas/${tarefaId}`, {
+        const res = await fetch(`/api/tarefas/${tarefaId}`, {
             method: 'DELETE',
             headers: {
                 'Authorization': `Bearer ${token}`
@@ -327,7 +327,7 @@ async function deleteTarefa(tarefaId) {
 async function updateTarefa(tarefaData) {
     const token = localStorage.getItem('token');
     try {
-        const res = await fetch(`http://localhost:3000/api/tarefas/${tarefaData.id}`, {
+        const res = await fetch(`/api/tarefas/${tarefaData.id}`, {
             method: 'PUT',
             headers: {
                 'Content-Type': 'application/json',
@@ -352,7 +352,7 @@ async function updateTarefa(tarefaData) {
 async function createTarefa(tarefa) {
     const token = localStorage.getItem('token');
     try {
-        const res = await fetch('http://localhost:3000/api/tarefas', {
+        const res = await fetch('/api/tarefas', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
@@ -452,7 +452,7 @@ function setupLojaProfessor() {
             return alert('Preencha todos os campos corretamente.');
         }
 
-        const res = await fetch('http://localhost:3000/api/itens', {
+        const res = await fetch('/api/itens', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
@@ -1023,7 +1023,7 @@ async function setupTarefasProfessor() {
     async function carregarAlunosDaTarefa(tarefaId) {
         const token = localStorage.getItem('token');
         try {
-            const res = await fetch(`http://localhost:3000/api/tarefas/professor/${tarefaId}/alunos`, {
+            const res = await fetch(`/api/tarefas/professor/${tarefaId}/alunos`, {
                 headers: { 'Authorization': `Bearer ${token}` }
             });
             if (!res.ok) throw new Error('Erro ao carregar alunos da tarefa.');

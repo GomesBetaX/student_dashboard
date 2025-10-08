@@ -53,7 +53,7 @@ function gerarAulasMes(turma, mes, ano) {
 // --- Funções API para Aluno ---
 async function loadAlunoProfile() {
     const token = localStorage.getItem('token');
-    const res = await fetch('http://localhost:3000/api/student/profile', {
+    const res = await fetch('/api/student/profile', {
         headers: { 'Authorization': `Bearer ${token}` }
     });
 
@@ -220,7 +220,7 @@ async function atualizarFrequenciaAluno(profile) { // [45]
 
     // Carrega o histórico de frequência [46]
     try {
-        const historicoRes = await fetch('http://localhost:3000/api/frequencia/historico', { // [46]
+        const historicoRes = await fetch('/api/frequencia/historico', { // [46]
             headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` } // [46]
         });
         if (!historicoRes.ok) throw new Error('Erro ao carregar histórico de frequências');
@@ -503,7 +503,7 @@ async function setupMeuPerfilAluno() {
 // Salva apenas os dados do aluno logado (não o array completo)
 async function saveMeuAluno(updates) {
     const token = localStorage.getItem('token');
-    const res = await fetch('http://localhost:3000/api/student/profile', {
+    const res = await fetch('/api/student/profile', {
         method: 'PUT',
         headers: {
             'Content-Type': 'application/json',
@@ -519,7 +519,7 @@ async function saveMeuAluno(updates) {
 // Carrega tarefas do aluno
 async function loadTarefasAluno() {
     const token = localStorage.getItem('token');
-    const res = await fetch('http://localhost:3000/api/tarefas/aluno', {
+    const res = await fetch('/api/tarefas/aluno', {
         headers: { 'Authorization': `Bearer ${token}` }
     });
     return res.ok ? await res.json() : [];
@@ -528,7 +528,7 @@ async function loadTarefasAluno() {
 // Marca tarefa como concluída
 async function concluirTarefaAluno(tarefaId) {
     const token = localStorage.getItem('token');
-    await fetch('http://localhost:3000/api/tarefas/concluir', {
+    await fetch('/api/tarefas/concluir', {
         method: 'POST',
         headers: {
             'Content-Type': 'application/json',
@@ -675,7 +675,7 @@ function abrirModalEntrega(tarefaId) {
 
         try {
             const token = localStorage.getItem('token');
-            const res = await fetch('http://localhost:3000/api/tarefas/entregar', {
+            const res = await fetch('/api/tarefas/entregar', {
                 method: 'POST',
                 headers: { 'Authorization': `Bearer ${token}` },
                 body: formData

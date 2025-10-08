@@ -82,7 +82,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
     try {
       const res = await fetch(
-        `http://localhost:3000/api/auth/${isRegister ? 'register' : 'login'}`,
+        `/api/auth/${isRegister ? 'register' : 'login'}`,
         {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },

@@ -1,21 +1,21 @@
 // Adicione estas funções no início do arquivo
 function loadAlunos() {
   const token = localStorage.getItem('token');
-  return fetch('http://localhost:3000/api/alunos', {
+  return fetch('/api/alunos', {
     headers: { 'Authorization': `Bearer ${token}` }
   }).then(res => res.ok ? res.json() : []);
 }
 
 function loadTurmas() {
   const token = localStorage.getItem('token');
-  return fetch('http://localhost:3000/api/turmas', {
+  return fetch('/api/turmas', {
     headers: { 'Authorization': `Bearer ${token}` }
   }).then(res => res.ok ? res.json() : []);
 }
 
 function saveAlunos(alunos) {
   const token = localStorage.getItem('token');
-  return fetch('http://localhost:3000/api/alunos', {
+  return fetch('/api/alunos', {
     method: 'POST',
     headers: { 
       'Content-Type': 'application/json',
@@ -27,7 +27,7 @@ function saveAlunos(alunos) {
 
 function saveTurmas(turmas) {
   const token = localStorage.getItem('token');
-  return fetch('http://localhost:3000/api/turmas', {
+  return fetch('/api/turmas', {
     method: 'POST',
     headers: { 
       'Content-Type': 'application/json',
