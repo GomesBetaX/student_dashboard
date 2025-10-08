@@ -99,135 +99,124 @@ function safeParse(value, fallback) {
 
 
 // =======================================================
-// ✅ POST /api/turmas — Cria uma nova turma
+// 📘 CRIAR NOVA TURMA
 // =======================================================
-// POST /api/turmas
 app.post('/api/turmas', authenticateToken, async (req, res) => {
   try {
     const userId = req.user.id;
     const {
       nome,
-      diasAula = [],
-      horario = '',
-      dataInicio = '',
-      tipo = '',
-      duracao = 3,
-      finalizada = false,
-      expandido = true,
-      aulasDesativadas = [],
-      planejamentos = {},
-      alunos = []
-    } = req.body;
-
-    const sql = `
-      INSERT INTO turmas (
-        userId, nome, diasaula, horario, datainicio, tipo, duracao,
-        finalizada, expandido, aulasdesativadas, planejamentos, alunos
-      )
-      VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12)
-      RETURNING *
-    `;
-
-    const values = [
-      userId,
-      nome,
-      JSON.stringify(diasAula),
+      diasAula,
       horario,
       dataInicio,
       tipo,
       duracao,
-      finalizada,
-      expandido,
-      JSON.stringify(aulasDesativadas),
-      JSON.stringify(planejamentos),
-      JSON.stringify(alunos)
+      alunos
+    } = req.body;
+
+    // 🔒 Garante que diasAula seja sempre um array
+    const diasAulaSeguros = Array.isArray(diasAula) ? diasAula : [];
+
+    const sql = `
+      INSERT INTO turmas (
+        userId, nome, diasAula, horario, dataInicio, tipo, duracao,
+        alunos, finalizada, expandido, aulasDesativadas, planejamentos
+      )
+      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, false, false, '[]', '{}')
+      RETURNING *
+    `;
+
+    const params = [
+      userId,
+      nome || 'Nova Turma',
+      JSON.stringify(diasAulaSeguros),
+      horario || '',
+      dataInicio || '',
+      tipo || '',
+      duracao || 3,
+      JSON.stringify(alunos || [])
     ];
 
-    const result = await pool.query(sql, values);
-    res.status(201).json({
-      message: 'Turma criada com sucesso!',
-      turma: result.rows[0]
-    });
+    const { rows } = await pool.query(sql, params);
+    res.status(201).json(rows[0]);
   } catch (err) {
     console.error('❌ Erro ao criar turma:', err);
-    res.status(500).json({ message: 'Erro ao criar turma.' });
+    res.status(500).json({ error: 'Erro ao criar turma.' });
   }
 });
 
 
-// =======================================================
-// ✅ PUT /api/turmas/:id — Atualiza uma turma existente
-// =======================================================
-// PUT /api/turmas/:id
-app.put('/api/turmas/:id', authenticateToken, async (req, res) => {
-  const userId = req.user.id;
-  const turmaId = req.params.id;
 
+// =======================================================
+// ✏️ EDITAR TURMA EXISTENTE
+// =======================================================
+app.put('/api/turmas/:id', authenticateToken, async (req, res) => {
   try {
+    const turmaId = req.params.id;
+    const userId = req.user.id;
+
     const {
-      nome = '',
-      diasAula = [],
-      horario = '',
-      dataInicio = '',
-      tipo = '',
-      duracao = 3,
-      finalizada = false,
-      expandido = true,
-      aulasDesativadas = [],
-      planejamentos = {},
-      alunos = []
+      nome,
+      diasAula,
+      horario,
+      dataInicio,
+      tipo,
+      duracao,
+      alunos,
+      finalizada,
+      expandido,
+      aulasDesativadas,
+      planejamentos
     } = req.body;
 
-    // ⚙️ Atualiza a turma com segurança
+    // 🔒 Garante que diasAula seja sempre um array
+    const diasAulaSeguros = Array.isArray(diasAula) ? diasAula : [];
+
     const sql = `
-      UPDATE turmas SET
-        nome = $1,
-        diasaula = $2,
-        horario = $3,
-        datainicio = $4,
-        tipo = $5,
-        duracao = $6,
-        finalizada = $7,
-        expandido = $8,
-        aulasdesativadas = $9,
-        planejamentos = $10,
-        alunos = $11
+      UPDATE turmas
+      SET nome = $1,
+          diasAula = $2,
+          horario = $3,
+          dataInicio = $4,
+          tipo = $5,
+          duracao = $6,
+          alunos = $7,
+          finalizada = $8,
+          expandido = $9,
+          aulasDesativadas = $10,
+          planejamentos = $11
       WHERE id = $12 AND userId = $13
       RETURNING *
     `;
 
-    const values = [
-      nome,
-      JSON.stringify(diasAula),
-      horario,
-      dataInicio,
-      tipo,
-      duracao,
-      finalizada,
-      expandido,
-      JSON.stringify(aulasDesativadas),
-      JSON.stringify(planejamentos),
-      JSON.stringify(alunos),
+    const params = [
+      nome || 'Turma sem nome',
+      JSON.stringify(diasAulaSeguros),
+      horario || '',
+      dataInicio || '',
+      tipo || '',
+      duracao || 3,
+      JSON.stringify(alunos || []),
+      finalizada ?? false,
+      expandido ?? false,
+      JSON.stringify(aulasDesativadas || []),
+      JSON.stringify(planejamentos || {}),
       turmaId,
       userId
     ];
 
-    const result = await pool.query(sql, values);
-
-    if (result.rowCount === 0) {
-      return res.status(404).json({ message: 'Turma não encontrada.' });
+    const { rows } = await pool.query(sql, params);
+    if (!rows.length) {
+      return res.status(404).json({ error: 'Turma não encontrada ou sem permissão.' });
     }
 
-    res.json({
-      message: 'Turma atualizada com sucesso!',
-      turma: result.rows[0]
-    });
-
+    res.json(rows[0]);
   } catch (err) {
     console.error('❌ Erro ao atualizar turma:', err);
-    res.status(500).json({ message: 'Erro ao atualizar turma.' });
+    res.status(500).json({ error: 'Erro ao atualizar turma.' });
   }
 });
+
 
 
 
