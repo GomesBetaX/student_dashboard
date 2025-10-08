@@ -28,10 +28,8 @@ function normalizeParams(params = []) {
   return params.map(p => (p === undefined ? null : p));
 }
 
+// ✅ Exporta tudo em um único objeto
 module.exports = {
-  /**
-   * Executa SELECT e retorna várias linhas (equivalente a db.all)
-   */
   all(sql, params = [], callback) {
     const query = convertPlaceholders(sql);
     const safeParams = normalizeParams(params);
@@ -43,9 +41,6 @@ module.exports = {
       });
   },
 
-  /**
-   * Executa SELECT e retorna apenas a primeira linha (equivalente a db.get)
-   */
   get(sql, params = [], callback) {
     const query = convertPlaceholders(sql);
     const safeParams = normalizeParams(params);
@@ -57,16 +52,13 @@ module.exports = {
       });
   },
 
-  /**
-   * Executa INSERT, UPDATE ou DELETE (equivalente a db.run)
-   */
   run(sql, params = [], callback) {
     const query = convertPlaceholders(sql);
     const safeParams = normalizeParams(params);
     pool.query(query, safeParams)
       .then(res => {
         const fakeThis = {
-          lastID: res.rows?.[0]?.id || null, // PostgreSQL não tem insertId nativo
+          lastID: res.rows?.[0]?.id || null,
           changes: res.rowCount || 0,
         };
         if (callback) callback.call(fakeThis, null);
@@ -77,13 +69,12 @@ module.exports = {
       });
   },
 
-  /**
-   * Suporte a async/await — ideal para consultas mais modernas
-   */
   async query(sql, params = []) {
     const query = convertPlaceholders(sql);
     const safeParams = normalizeParams(params);
     const res = await pool.query(query, safeParams);
     return res.rows;
   },
+
+  pool // ✅ Exporta também o pool para uso direto no server.js
 };

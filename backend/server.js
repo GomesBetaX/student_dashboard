@@ -6,6 +6,9 @@ const multer = require('multer');
 const fs = require('fs');
 require('dotenv').config();
 
+const { pool } = require('./database/db');
+
+
 // ⚠️ Usaremos só o wrapper do Postgres que você já tem:
 const db = require('./database/db');
 
@@ -95,81 +98,109 @@ function safeParse(value, fallback) {
 }
 
 
-app.post('/api/turmas', authenticateToken, (req, res) => {
-  const userId = req.user.id;
-  const novaTurma = req.body;
+// =======================================================
+// ✅ POST /api/turmas — Cria uma nova turma
+// =======================================================
+app.post('/api/turmas', authenticateToken, async (req, res) => {
+  try {
+    const userId = req.user.id;
+    const novaTurma = req.body;
 
-  if (!novaTurma || !novaTurma.nome || !novaTurma.diasAula || !novaTurma.horario || !novaTurma.dataInicio) {
-    return res.status(400).json({ error: 'Dados da turma incompletos.' });
-  }
-
-  const sql = `
-    INSERT INTO turmas (
-      userId, nome, diasAula, horario, dataInicio, tipo, duracao, finalizada, expandido, aulasDesativadas, planejamentos, alunos
-    )
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-    RETURNING id
-  `;
-
-  db.get(sql, [
-    userId,
-    novaTurma.nome,
-    JSON.stringify(novaTurma.diasAula),
-    novaTurma.horario,
-    novaTurma.dataInicio,
-    novaTurma.tipo || '',
-    novaTurma.duracao || 3,
-    novaTurma.finalizada || false,
-    novaTurma.expandido !== undefined ? novaTurma.expandido : true,
-    JSON.stringify(novaTurma.aulasDesativadas || []),
-    JSON.stringify(novaTurma.planejamentos || {}),
-    JSON.stringify(novaTurma.alunos || [])
-  ], (err, row) => {
-    if (err) {
-      console.error('Erro ao inserir turma:', err);
-      return res.status(500).json({ error: 'Erro ao salvar turma no banco.' });
+    if (!novaTurma || !novaTurma.nome || !novaTurma.diasAula || !novaTurma.horario || !novaTurma.dataInicio) {
+      return res.status(400).json({ error: 'Dados da turma incompletos.' });
     }
-    res.status(201).json({ id: row.id, ...novaTurma, alunos: novaTurma.alunos || [] });
-  });
+
+    const alunosJson = JSON.stringify(novaTurma.alunos || []);
+    const sql = `
+      INSERT INTO turmas (
+        userId, nome, diasAula, horario, dataInicio, tipo, duracao, 
+        finalizada, expandido, aulasDesativadas, planejamentos, alunos
+      )
+      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
+      RETURNING id
+    `;
+
+    const result = await pool.query(sql, [
+      userId,
+      novaTurma.nome,
+      JSON.stringify(novaTurma.diasAula),
+      novaTurma.horario,
+      novaTurma.dataInicio,
+      novaTurma.tipo || '',
+      novaTurma.duracao || 3,
+      novaTurma.finalizada || false,
+      novaTurma.expandido !== undefined ? novaTurma.expandido : true,
+      JSON.stringify(novaTurma.aulasDesativadas || []),
+      JSON.stringify(novaTurma.planejamentos || {}),
+      alunosJson
+    ]);
+
+    res.status(201).json({ 
+      id: result.rows[0].id, 
+      ...novaTurma, 
+      alunos: novaTurma.alunos || [] 
+    });
+
+  } catch (err) {
+    console.error('❌ Erro ao inserir turma:', err);
+    res.status(500).json({ error: 'Erro ao salvar turma no banco.' });
+  }
 });
 
-app.put('/api/turmas/:id', authenticateToken, (req, res) => {
-  const userId = req.user.id;
-  const turmaId = req.params.id;
-  const t = req.body;
+// =======================================================
+// ✅ PUT /api/turmas/:id — Atualiza uma turma existente
+// =======================================================
+app.put('/api/turmas/:id', authenticateToken, async (req, res) => {
+  try {
+    const userId = req.user.id;
+    const turmaId = req.params.id;
+    const turmaAtualizada = req.body;
 
-  const sql = `
-    UPDATE turmas SET
-      nome = ?, diasAula = ?, horario = ?, dataInicio = ?, tipo = ?, duracao = ?,
-      finalizada = ?, expandido = ?, aulasDesativadas = ?, planejamentos = ?, alunos = ?
-    WHERE id = ? AND userId = ?
-  `;
+    const alunosJson = JSON.stringify(turmaAtualizada.alunos || []);
+    const sql = `
+      UPDATE turmas SET
+        nome = $1,
+        diasAula = $2,
+        horario = $3,
+        dataInicio = $4,
+        tipo = $5,
+        duracao = $6,
+        finalizada = $7,
+        expandido = $8,
+        aulasDesativadas = $9,
+        planejamentos = $10,
+        alunos = $11
+      WHERE id = $12 AND userId = $13
+    `;
 
-  db.run(sql, [
-    t.nome,
-    JSON.stringify(t.diasAula || []),
-    t.horario,
-    t.dataInicio,
-    t.tipo,
-    t.duracao,
-    t.finalizada,
-    t.expandido,
-    JSON.stringify(t.aulasAulasDesativadas || t.aulasDesativadas || []),
-    JSON.stringify(t.planejamentos || {}),
-    JSON.stringify(t.alunos || []),
-    turmaId,
-    userId
-  ], function (err) {
-    if (err) {
-      console.error('Erro ao atualizar turma:', err);
-      return res.status(500).json({ error: 'Erro ao atualizar turma no banco.' });
-    }
-    if (this.changes === 0) {
+    const result = await pool.query(sql, [
+      turmaAtualizada.nome,
+      JSON.stringify(turmaAtualizada.diasAula || []),
+      turmaAtualizada.horario,
+      turmaAtualizada.dataInicio,
+      turmaAtualizada.tipo,
+      turmaAtualizada.duracao,
+      turmaAtualizada.finalizada,
+      turmaAtualizada.expandido,
+      JSON.stringify(turmaAtualizada.aulasDesativadas || []),
+      JSON.stringify(turmaAtualizada.planejamentos || {}),
+      alunosJson,
+      turmaId,
+      userId
+    ]);
+
+    if (result.rowCount === 0) {
       return res.status(404).json({ error: 'Turma não encontrada ou não pertence a este usuário.' });
     }
+
     res.json({ success: true, message: 'Turma atualizada com sucesso.' });
-  });
+
+  } catch (err) {
+    console.error('❌ Erro ao atualizar turma:', err);
+    res.status(500).json({ error: 'Erro ao atualizar turma no banco.' });
+  }
 });
+
 
 app.delete('/api/turmas/:id', authenticateToken, (req, res) => {
   const userId = req.user.id;
