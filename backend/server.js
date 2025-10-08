@@ -57,30 +57,43 @@ app.get('/api/turmas', authenticateToken, (req, res) => {
   const userId = req.user.id;
   const sql = `
     SELECT id, nome, diasAula, horario, dataInicio, tipo, duracao, finalizada, expandido, aulasDesativadas, planejamentos, alunos
-    FROM turmas WHERE userId = ? ORDER BY dataInicio DESC
+    FROM turmas WHERE userId = $1 ORDER BY dataInicio DESC
   `;
-  db.all(sql, [userId], (err, rows) => {
-    if (err) {
-      console.error('Erro ao buscar turmas:', err);
-      return res.status(500).json({ error: 'Erro ao buscar turmas.' });
-    }
-    const turmas = rows.map(row => ({
-      id: row.id,
-      nome: row.nome,
-      diasAula: JSON.parse(row.diasAula),
-      horario: row.horario,
-      dataInicio: row.dataInicio,
-      tipo: row.tipo,
-      duracao: row.duracao,
-      finalizada: !!row.finalizada,
-      expandido: !!row.expandido,
-      aulasDesativadas: row.aulasDesativadas ? JSON.parse(row.aulasDesativadas) : [],
-      planejamentos: row.planejamentos ? JSON.parse(row.planejamentos) : {},
-      alunos: row.alunos ? JSON.parse(row.alunos) : []
-    }));
-    res.json(turmas);
-  });
+
+  pool.query(sql, [userId])
+    .then(result => {
+      const turmas = result.rows.map(row => ({
+        id: row.id,
+        nome: row.nome || 'Turma sem nome',
+        diasAula: safeParse(row.diasaula, []),
+        horario: row.horario || '',
+        dataInicio: row.datainicio || '',
+        tipo: row.tipo || '',
+        duracao: row.duracao || 3,
+        finalizada: !!row.finalizada,
+        expandido: !!row.expandido,
+        aulasDesativadas: safeParse(row.aulasdesativadas, []),
+        planejamentos: safeParse(row.planejamentos, {}),
+        alunos: safeParse(row.alunos, [])
+      }));
+      res.json(turmas);
+    })
+    .catch(err => {
+      console.error('❌ Erro ao buscar turmas:', err);
+      res.status(500).json({ error: 'Erro ao buscar turmas.' });
+    });
 });
+
+// ✅ Função utilitária que evita "undefined is not valid JSON"
+function safeParse(value, fallback) {
+  if (!value) return fallback;
+  try {
+    return JSON.parse(value);
+  } catch {
+    return fallback;
+  }
+}
+
 
 app.post('/api/turmas', authenticateToken, (req, res) => {
   const userId = req.user.id;
