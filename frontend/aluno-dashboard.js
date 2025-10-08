@@ -1,4 +1,8 @@
 // frontend/aluno-dashboard.js
+const API_BASE = window.location.origin.includes('localhost')
+  ? 'http://localhost:3000'
+  : 'https://student-dashboard-t5y0.onrender.com';
+
 
 // **NOVO**: Verifica autenticação para alunos
 const token = localStorage.getItem('token');
@@ -518,11 +522,27 @@ async function saveMeuAluno(updates) {
 
 // Carrega tarefas do aluno
 async function loadTarefasAluno() {
-    const token = localStorage.getItem('token');
-    const res = await fetch('/api/tarefas/aluno', {
-        headers: { 'Authorization': `Bearer ${token}` }
+  const token = localStorage.getItem('token');
+  try {
+    const res = await fetch(`${API_BASE}/api/tarefas`, {
+      headers: { 'Authorization': `Bearer ${token}` }
     });
-    return res.ok ? await res.json() : [];
+
+    if (!res.ok) {
+      const text = await res.text();
+      console.error('❌ Erro ao buscar tarefas:', res.status, text);
+      showToast('Erro ao carregar tarefas.');
+      return [];
+    }
+
+    const data = await res.json();
+    console.log('📋 Tarefas recebidas:', data);
+    return data;
+  } catch (err) {
+    console.error('⚠️ Falha na conexão ao buscar tarefas:', err);
+    showToast('Erro de conexão com o servidor.');
+    return [];
+  }
 }
 
 // Marca tarefa como concluída
