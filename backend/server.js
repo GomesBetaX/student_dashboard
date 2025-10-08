@@ -919,11 +919,10 @@ app.get('/api/tarefas/aluno', authenticateToken, async (req, res) => {
   const alunoId = req.user.id;
 
   try {
-    // Busca todos os alunos cadastrados
+    // 1️⃣ Busca o registro do aluno e suas turmas
     const { rows: alunoRows } = await pool.query(`SELECT data FROM alunos`);
     if (!alunoRows?.length) return res.json([]);
 
-    // Localiza os dados do aluno
     let alunoData = null;
     for (const row of alunoRows) {
       try {
@@ -933,43 +932,57 @@ app.get('/api/tarefas/aluno', authenticateToken, async (req, res) => {
           alunoData = encontrado;
           break;
         }
-      } catch {}
+      } catch (e) {
+        console.error("Erro ao parsear alunos:", e);
+      }
     }
 
-    if (!alunoData?.turmas?.length) return res.json([]);
-    const turmasDoAluno = new Set(alunoData.turmas);
+    if (!alunoData) return res.json([]);
+    
+    // 🔧 Garante que turmas seja um array de strings
+    const turmasDoAluno = new Set(
+      Array.isArray(alunoData.turmas)
+        ? alunoData.turmas.map(t => String(t))
+        : []
+    );
 
-    // Busca todas as tarefas e suas conclusões
+    if (!turmasDoAluno.size) {
+      console.warn(`Aluno ${alunoId} não tem turmas registradas.`);
+      return res.json([]);
+    }
+
+    // 2️⃣ Busca todas as tarefas
     const { rows: tarefas } = await pool.query(`
       SELECT 
         t.id, t.titulo, t.descricao, t.prazo, t.createdAt, t.turmas, t.recompensaGold,
         ct.entregue, ct.corrigida, ct.dataEntrega, ct.fotoEntrega
       FROM tarefas t
-      LEFT JOIN conclusoesTarefas ct ON t.id = ct.tarefaId AND ct.alunoId = $1
+      LEFT JOIN conclusoesTarefas ct 
+        ON t.id = ct.tarefaId AND ct.alunoId = $1
       ORDER BY t.createdAt DESC
     `, [alunoId]);
 
-    const tarefasDoAluno = tarefas
-      .filter(t => {
-        try {
-          const turmasDaTarefa = JSON.parse(t.turmas);
-          return turmasDaTarefa.some(turmaId => turmasDoAluno.has(turmaId));
-        } catch {
-          return false;
-        }
-      })
-      .map(t => ({
-        id: t.id,
-        titulo: t.titulo,
-        descricao: t.descricao,
-        prazo: t.prazo,
-        createdAt: t.createdat,
-        recompensaGold: t.recompensagold || 0,
-        entregue: !!t.entregue,
-        corrigida: !!t.corrigida,
-        dataEntrega: t.dataentrega,
-        fotoEntrega: t.fotoentrega
-      }));
+    // 3️⃣ Filtra apenas as tarefas que pertencem às turmas do aluno
+    const tarefasDoAluno = tarefas.filter(t => {
+      if (!t.turmas) return false;
+      try {
+        const turmasDaTarefa = JSON.parse(t.turmas).map(tt => String(tt));
+        return turmasDaTarefa.some(turma => turmasDoAluno.has(turma));
+      } catch {
+        return false;
+      }
+    }).map(t => ({
+      id: t.id,
+      titulo: t.titulo,
+      descricao: t.descricao,
+      prazo: t.prazo,
+      createdAt: t.createdat,
+      recompensaGold: t.recompensagold || 0,
+      entregue: !!t.entregue,
+      corrigida: !!t.corrigida,
+      dataEntrega: t.dataentrega,
+      fotoEntrega: t.fotoentrega
+    }));
 
     res.json(tarefasDoAluno);
   } catch (err) {
@@ -977,6 +990,7 @@ app.get('/api/tarefas/aluno', authenticateToken, async (req, res) => {
     res.status(500).json({ error: 'Erro interno ao buscar tarefas.' });
   }
 });
+
 
 
 // Aluno entrega tarefa (com foto)
