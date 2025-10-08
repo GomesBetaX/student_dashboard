@@ -1136,21 +1136,22 @@ app.post('/api/itens', authenticateToken, async (req, res) => {
 
 
 
+// ✅ Itens visíveis ao aluno — apenas itens públicos
 app.get('/api/itens', authenticateToken, async (req, res) => {
-  const userId = req.user.id;
   try {
-    const sql = `
-      SELECT * FROM itens_loja
-      WHERE privado = false OR criadoPor = $1
-      ORDER BY preco ASC
-    `;
-    const { rows } = await pool.query(sql, [userId]);
+    const { rows } = await pool.query(`
+      SELECT id, nome, descricao, efeito, slot, power, preco, icone
+      FROM itens_loja
+      WHERE privado = false OR privado IS NULL
+      ORDER BY id ASC
+    `);
     res.json(rows);
   } catch (err) {
-    console.error('❌ Erro ao buscar itens:', err);
-    res.status(500).json({ message: 'Erro ao buscar itens.' });
+    console.error('❌ Erro ao carregar itens da loja:', err);
+    res.status(500).json({ error: 'Erro ao carregar itens da loja.' });
   }
 });
+
 
 
 app.get('/api/itens/professor', authenticateToken, async (req, res) => {

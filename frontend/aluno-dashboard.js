@@ -734,10 +734,11 @@ const pagesAluno = {
     }),
     'loja-aluno': () => {
         loadPageAluno('loja-aluno.html').then(() => {
-            // Verifica se a função já foi carregada (evita duplicação)
-            if (typeof setupLojaAluno !== 'function') {
+            // Evita carregar o mesmo script duas vezes
+            if (!window.lojaScriptCarregado) {
+                window.lojaScriptCarregado = true;
                 const script = document.createElement('script');
-                script.src = 'loja-aluno.js';
+                script.src = 'loja-aluno.js?v=' + Date.now(); // cache-busting
                 script.onload = () => {
                     if (typeof setupLojaAluno === 'function') {
                         setupLojaAluno();
@@ -747,8 +748,9 @@ const pagesAluno = {
                 };
                 document.body.appendChild(script);
             } else {
-                // Já foi carregado, só executa
-                setupLojaAluno();
+                if (typeof setupLojaAluno === 'function') {
+                    setupLojaAluno();
+                }
             }
         });
     },
