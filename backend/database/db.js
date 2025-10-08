@@ -1,40 +1,41 @@
-// database/db.js
+// backend/database/db.js
 const { Pool } = require('pg');
 require('dotenv').config();
 
-// Cria conexão com o banco PostgreSQL
+// Cria pool de conexão com PostgreSQL
 const pool = new Pool({
   connectionString: process.env.DATABASE_URL,
   ssl: { rejectUnauthorized: false },
 });
 
-// Log de conexão
+// Testa conexão inicial
 pool.connect()
   .then(() => console.log('✅ Conectado ao banco PostgreSQL!'))
   .catch(err => console.error('❌ Erro ao conectar ao PostgreSQL:', err));
 
 /**
- * Adaptação para manter compatibilidade com o estilo better-sqlite3:
- * - db.get(sql, params, callback)
- * - db.all(sql, params, callback)
- * - db.run(sql, params, callback)
- *
- * Todas as rotas do seu server.js continuam funcionando sem precisar alterar nada.
+ * Converte placeholders estilo SQLite (?) para estilo PostgreSQL ($1, $2, ...).
  */
-
 function convertPlaceholders(sql) {
-  // Converte '?' para '$1', '$2', '$3'... (PostgreSQL usa parâmetros numerados)
   let count = 0;
   return sql.replace(/\?/g, () => `$${++count}`);
 }
 
+/**
+ * Normaliza parâmetros: converte undefined em null (PostgreSQL não aceita undefined)
+ */
+function normalizeParams(params = []) {
+  return params.map(p => (p === undefined ? null : p));
+}
+
 module.exports = {
   /**
-   * SELECT * FROM ... → retorna várias linhas
+   * Executa SELECT e retorna várias linhas (equivalente a db.all)
    */
   all(sql, params = [], callback) {
     const query = convertPlaceholders(sql);
-    pool.query(query, params)
+    const safeParams = normalizeParams(params);
+    pool.query(query, safeParams)
       .then(res => callback && callback(null, res.rows))
       .catch(err => {
         console.error('❌ Erro em db.all:', err.message);
@@ -43,12 +44,13 @@ module.exports = {
   },
 
   /**
-   * SELECT * FROM ... LIMIT 1 → retorna uma única linha
+   * Executa SELECT e retorna apenas a primeira linha (equivalente a db.get)
    */
   get(sql, params = [], callback) {
     const query = convertPlaceholders(sql);
-    pool.query(query, params)
-      .then(res => callback && callback(null, res.rows[0]))
+    const safeParams = normalizeParams(params);
+    pool.query(query, safeParams)
+      .then(res => callback && callback(null, res.rows[0] || null))
       .catch(err => {
         console.error('❌ Erro em db.get:', err.message);
         callback && callback(err);
@@ -56,16 +58,16 @@ module.exports = {
   },
 
   /**
-   * INSERT, UPDATE ou DELETE → executa e retorna metadados
+   * Executa INSERT, UPDATE ou DELETE (equivalente a db.run)
    */
   run(sql, params = [], callback) {
     const query = convertPlaceholders(sql);
-    pool.query(query, params)
+    const safeParams = normalizeParams(params);
+    pool.query(query, safeParams)
       .then(res => {
-        // Simula o "this" do better-sqlite3
         const fakeThis = {
-          lastID: res.insertId || null,
-          changes: res.rowCount,
+          lastID: res.rows?.[0]?.id || null, // PostgreSQL não tem insertId nativo
+          changes: res.rowCount || 0,
         };
         if (callback) callback.call(fakeThis, null);
       })
@@ -76,11 +78,12 @@ module.exports = {
   },
 
   /**
-   * Suporte opcional a async/await
+   * Suporte a async/await — ideal para consultas mais modernas
    */
   async query(sql, params = []) {
     const query = convertPlaceholders(sql);
-    const res = await pool.query(query, params);
+    const safeParams = normalizeParams(params);
+    const res = await pool.query(query, safeParams);
     return res.rows;
   },
 };
