@@ -524,7 +524,7 @@ async function saveMeuAluno(updates) {
 async function loadTarefasAluno() {
   const token = localStorage.getItem('token');
   try {
-    const res = await fetch(`${API_BASE}/api/tarefas`, {
+    const res = await fetch(`${API_BASE}/api/tarefas/aluno`, {
       headers: { 'Authorization': `Bearer ${token}` }
     });
 
