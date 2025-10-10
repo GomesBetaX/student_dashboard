@@ -23,6 +23,8 @@ async function carregarSaldo() {
     if (!res.ok) throw new Error('Falha ao carregar perfil.');
     const profile = await res.json();
     console.log('Perfil do aluno:', profile);
+    
+    
 
     document.getElementById('saldoGold').textContent = profile.gold || 0;
   } catch (err) {

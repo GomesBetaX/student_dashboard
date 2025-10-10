@@ -1240,6 +1240,10 @@ app.post('/api/comprar', authenticateToken, async (req, res) => {
 
   try {
     const { rows: alunos } = await pool.query(`SELECT id, data FROM alunos`);
+    console.log('Registros de alunos encontrados:', alunos.length);
+    console.log('Procurando alunoId:', alunoId);
+    console.log(await pool.query(`SELECT id, data FROM alunos`));
+    
     let turmaIdEncontrada = null;
     let alunoEncontrado = null;
 
