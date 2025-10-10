@@ -464,6 +464,7 @@ app.get('/api/arena/alunos', authenticateToken, async (req, res) => {
 // -------------------------------
 // 🧩 2) Meu estado / status PVP
 // -------------------------------
+/**
 app.get('/api/arena/meu-estado', authenticateToken, async (req, res) => {
   try {
     const { rows } = await pool.query(
@@ -473,7 +474,52 @@ app.get('/api/arena/meu-estado', authenticateToken, async (req, res) => {
   } catch (err) {
     res.status(500).json({ error: 'Erro ao buscar estado.' });
   }
+}); **/
+app.get('/api/arena/meu-estado', authenticateToken, async (req, res) => {
+  const userId = req.user.id;
+  const username = req.user.username;
+
+  try {
+    // tenta encontrar o alunoId real vinculado a esse userId OU CTR
+    const { rows: allRows } = await pool.query(`SELECT data FROM alunos`);
+    let meuAlunoId = null;
+
+    for (const row of allRows) {
+      const alunos = safeJSON(row.data, []);
+      const encontrado = alunos.find(a =>
+        String(a.userId) === String(userId) ||
+        String(a.ctr) === String(username)
+      );
+      if (encontrado?.userId) {
+        meuAlunoId = encontrado.userId;
+        break;
+      }
+    }
+
+    if (!meuAlunoId) {
+      return res.json({ cansadoAte: null, pvpAtivado: true });
+    }
+
+    // busca na tabela arena o estado correspondente
+    const { rows } = await pool.query(
+      `SELECT cansadoAte, pvpAtivado FROM arena WHERE alunoId = $1`,
+      [meuAlunoId]
+    );
+
+    if (!rows.length) {
+      return res.json({ cansadoAte: null, pvpAtivado: true });
+    }
+
+    res.json({
+      cansadoAte: rows[0].cansadoate || null,
+      pvpAtivado: rows[0].pvpativado === undefined ? true : !!rows[0].pvpativado
+    });
+  } catch (err) {
+    console.error('❌ Erro em /api/arena/meu-estado:', err);
+    res.status(500).json({ error: 'Erro ao verificar estado de cansaço.' });
+  }
 });
+
 
 app.get('/api/arena/meu-status', authenticateToken, async (req, res) => {
   try {
