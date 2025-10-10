@@ -1256,11 +1256,7 @@ app.post('/api/comprar', authenticateToken, async (req, res) => {
         continue;
       }
 
-      // const found = alunosArray.find(a => String(a.userId) === String(alunoId));
-      const found = alunosArray.find(a =>
-        String(a.userId) === String(alunoId) ||
-        String(a.ctr) === String(req.user.username)
-      );
+      const found = alunosArray.find(a => String(a.userId) === String(alunoId));
       if (found) {
         turmaIdEncontrada = row.id;
         alunoEncontrado = found;
