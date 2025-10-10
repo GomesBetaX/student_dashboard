@@ -1243,7 +1243,7 @@ app.post('/api/comprar', authenticateToken, async (req, res) => {
     console.log('Registros de alunos encontrados:', alunos.length);
     console.log('Procurando alunoId:', alunoId);
     console.log(await pool.query(`SELECT id, data FROM alunos`));
-    
+
     let turmaIdEncontrada = null;
     let alunoEncontrado = null;
 
@@ -1256,7 +1256,11 @@ app.post('/api/comprar', authenticateToken, async (req, res) => {
         continue;
       }
 
-      const found = alunosArray.find(a => String(a.userId) === String(alunoId));
+      // const found = alunosArray.find(a => String(a.userId) === String(alunoId));
+      const found = alunosArray.find(a =>
+        String(a.userId) === String(alunoId) ||
+        String(a.ctr) === String(req.user.username)
+      );
       if (found) {
         turmaIdEncontrada = row.id;
         alunoEncontrado = found;
