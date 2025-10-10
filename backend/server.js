@@ -1235,6 +1235,7 @@ app.patch('/api/itens/:id/privar', authenticateToken, async (req, res) => {
 
 app.post('/api/comprar', authenticateToken, async (req, res) => {
   const alunoId = req.user.id;
+  console.log('Aluno', alunoId, 'tentando comprar item:', req.body);
   const { itemId } = req.body;
 
   try {
