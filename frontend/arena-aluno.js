@@ -39,10 +39,15 @@ async function setupArenaAluno() {
       
       // Estado do adversário
       const agora = new Date();
-      const estaCansado = a.cansadoAte && new Date(a.cansadoAte) > agora;
-      const statusAdversario = estaCansado ? 
-        '<span class="badge bg-warning text-dark">Cansado</span>' : 
-        '<span class="badge bg-success">Disponível</span>';
+      let estaCansado = false;
+      if (a.cansadoAte) {
+        const cansadoData = new Date(a.cansadoAte);
+        estaCansado = !isNaN(cansadoData) && cansadoData.getTime() > Date.now();
+      }
+
+      const statusAdversario = estaCansado
+        ? '<span class="badge bg-warning text-dark">😴 Cansado</span>'
+        : '<span class="badge bg-success">⚔️ Disponível</span>';
 
       // Monta slots com tooltip
       const slots = ['cabeca', 'camisa', 'calca', 'pes', 'artefato'];
@@ -74,7 +79,7 @@ async function setupArenaAluno() {
             <div class="mt-2">${slotHTML}</div>
             <button class="btn btn-sm btn-${estaCansado ? 'secondary' : 'danger'} mt-3 btn-batalhar" 
                     data-id="${a.idSeguro}" ${estaCansado ? 'disabled' : ''}>
-              ${estaCansado ? 'Cansado' : 'BATALHAR'}
+              ${estaCansado ? 'CANSADO' : 'BATALHAR'}
             </button>
           </div>
         </div>
