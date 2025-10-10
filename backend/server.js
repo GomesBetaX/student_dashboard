@@ -1256,7 +1256,11 @@ app.post('/api/comprar', authenticateToken, async (req, res) => {
         continue;
       }
 
-      const found = alunosArray.find(a => String(a.userId) === String(alunoId));
+      // const found = alunosArray.find(a => String(a.userId) === String(alunoId));
+      const found = alunosArray.find(a =>
+        String(a.userId) === String(alunoId) ||
+        String(a.ctr) === String(req.user.username)
+      );
       if (found) {
         turmaIdEncontrada = row.id;
         alunoEncontrado = found;
@@ -1287,7 +1291,12 @@ app.post('/api/comprar', authenticateToken, async (req, res) => {
     // Salva de volta
     const { rows: turmasRows } = await pool.query(`SELECT data FROM alunos WHERE id = $1`, [turmaIdEncontrada]);
     let alunosArray = JSON.parse(turmasRows[0].data);
-    const idx = alunosArray.findIndex(a => String(a.userId) === String(alunoId));
+    // const idx = alunosArray.findIndex(a => String(a.userId) === String(alunoId));
+    const idx = alunosArray.findIndex(a =>
+      String(a.userId) === String(alunoId) ||
+      String(a.ctr) === String(req.user.username)
+    );
+
     alunosArray[idx] = alunoEncontrado;
 
     await pool.query(`UPDATE alunos SET data = $1 WHERE id = $2`, [JSON.stringify(alunosArray), turmaIdEncontrada]);
