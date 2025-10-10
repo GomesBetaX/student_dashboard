@@ -659,78 +659,95 @@ app.put('/api/arena/pvp', authenticateToken, async (req, res) => {
   }
 }); **/
 app.post('/api/arena/batalha', authenticateToken, async (req, res) => {
-  const alvoRaw = req.body.alvoId;             // pode ser número (id) ou CTR (string)
-  const atacanteId = req.user.id;              // sempre number
+  const alvoRaw = req.body.alvoId;   // pode ser userId (número) ou CTR (string)
+  const atacanteId = req.user.id;    // sempre numérico (do token JWT)
   const atacanteCtr = req.user.username || null;
   const agora = new Date();
   const cansadoAte = new Date(agora.getTime() + 15 * 60 * 1000).toISOString();
 
   try {
-    // resolve rows de todos os professores (onde os arrays de alunos estão)
     const { rows: allRows } = await pool.query(`SELECT data, userid FROM alunos`);
     let atacanteData, alvoData, atacanteProfessorId, alvoProfessorId;
     let atacanteArray, alvoArray, atacanteIndex, alvoIndex;
 
-    // detecta se alvoRaw é número
+    // detecta formato do alvo
     const alvoIsNumber = String(alvoRaw).match(/^\d+$/) !== null;
     const alvoIdNum = alvoIsNumber ? parseInt(alvoRaw, 10) : null;
     const alvoCtr = alvoIsNumber ? null : String(alvoRaw);
 
     for (const row of allRows) {
       const alunos = safeJSON(row.data, []);
-      // procura atacante por userId OU ctr
+
+      // busca ampliada: permite userId, ctr, ou misto
       const idxAtacante = alunos.findIndex(a =>
         String(a.userId) === String(atacanteId) ||
-        (a.ctr && String(a.ctr) === String(atacanteCtr))
+        String(a.ctr) === String(atacanteCtr) ||
+        String(a.ctr) === String(atacanteId)
       );
 
-      // procura alvo por userId OU ctr
       const idxAlvo = alunos.findIndex(a =>
-        (alvoIdNum !== null && String(a.userId) === String(alvoIdNum)) ||
-        (alvoCtr !== null && String(a.ctr) === String(alvoCtr))
+        String(a.userId) === String(alvoRaw) ||
+        String(a.ctr) === String(alvoRaw) ||
+        String(a.userId) === String(alvoIdNum) ||
+        String(a.ctr) === String(alvoCtr)
       );
 
       if (idxAtacante !== -1) {
         atacanteData = alunos[idxAtacante];
         atacanteArray = alunos;
-        atacanteProfessorId = row.userid || null;
+        atacanteProfessorId = row.userid;
         atacanteIndex = idxAtacante;
       }
+
       if (idxAlvo !== -1) {
         alvoData = alunos[idxAlvo];
         alvoArray = [...alunos];
-        alvoProfessorId = row.userid || null;
+        alvoProfessorId = row.userid;
         alvoIndex = idxAlvo;
       }
     }
+
+    // debug temporário (pode remover depois)
+    console.log({
+      atacanteId,
+      atacanteCtr,
+      alvoRaw,
+      encontradoAtacante: !!atacanteData,
+      encontradoAlvo: !!alvoData,
+      atacanteProfessorId,
+      alvoProfessorId
+    });
 
     if (!atacanteData || !alvoData) {
       return res.status(404).json({ error: 'Um dos jogadores não foi encontrado.' });
     }
 
-    // --- verifica PVP / cansaço ---
-    // usamos IDs numéricos quando disponíveis; caso contrário, assumimos pvp ativo por padrão
+    // 🔹 verifica estado de PVP / cansaço
     const atacanteDbId = Number.isInteger(atacanteData.userId) ? atacanteData.userId : atacanteId;
-    let atacanteArenaRow = { pvpAtivado: true, cansadoAte: null };
-    if (Number.isInteger(atacanteDbId)) {
-      const r = await pool.query(`SELECT pvpAtivado, cansadoAte FROM arena WHERE alunoId = $1`, [atacanteDbId]);
-      if (r.rows.length) atacanteArenaRow = { pvpAtivado: r.rows[0].pvpativado === undefined ? true : !!r.rows[0].pvpativado, cansadoAte: r.rows[0].cansadoate || null };
-    }
-
     const alvoDbId = Number.isInteger(alvoData.userId) ? alvoData.userId : null;
-    let alvoArenaRow = { pvpAtivado: true, cansadoAte: null };
-    if (alvoDbId !== null) {
-      const r2 = await pool.query(`SELECT pvpAtivado, cansadoAte FROM arena WHERE alunoId = $1`, [alvoDbId]);
-      if (r2.rows.length) alvoArenaRow = { pvpAtivado: r2.rows[0].pvpativado === undefined ? true : !!r2.rows[0].pvpativado, cansadoAte: r2.rows[0].cansadoate || null };
-    }
 
-    const atacantePode = atacanteArenaRow.pvpAtivado && (!atacanteArenaRow.cansadoAte || new Date(atacanteArenaRow.cansadoAte) < agora);
-    const alvoPode = alvoArenaRow.pvpAtivado && (!alvoArenaRow.cansadoAte || new Date(alvoArenaRow.cansadoAte) < agora);
+    const atacanteArena = await pool.query(
+      `SELECT pvpAtivado, cansadoAte FROM arena WHERE alunoId = $1`,
+      [atacanteDbId]
+    );
+    const alvoArena = alvoDbId
+      ? await pool.query(`SELECT pvpAtivado, cansadoAte FROM arena WHERE alunoId = $1`, [alvoDbId])
+      : { rows: [] };
 
-    if (!atacantePode) return res.status(400).json({ error: 'Você está cansado ou com PVP desativado.' });
-    if (!alvoPode) return res.status(400).json({ error: 'O alvo não está disponível.' });
+    const atacantePode =
+      (atacanteArena.rows[0]?.pvpativado ?? true) &&
+      (!atacanteArena.rows[0]?.cansadoate || new Date(atacanteArena.rows[0].cansadoate) < agora);
 
-    // --- cálculo da batalha ---
+    const alvoPode =
+      (alvoArena.rows[0]?.pvpativado ?? true) &&
+      (!alvoArena.rows[0]?.cansadoate || new Date(alvoArena.rows[0].cansadoate) < agora);
+
+    if (!atacantePode)
+      return res.status(400).json({ error: 'Você está cansado ou com PVP desativado.' });
+    if (!alvoPode)
+      return res.status(400).json({ error: 'O alvo não está disponível.' });
+
+    // 🔹 cálculo da batalha
     const poderAtacante = Object.values(atacanteData.equipamentos || {}).reduce((s, i) => s + (i?.power || 0), 0);
     const poderAlvo = Object.values(alvoData.equipamentos || {}).reduce((s, i) => s + (i?.power || 0), 0);
     const dadoAtacante = Math.floor(Math.random() * 6) + 1;
@@ -752,25 +769,27 @@ app.post('/api/arena/batalha', authenticateToken, async (req, res) => {
       empate = true;
     }
 
-    // atualiza estado cansado na tabela 'arena' apenas se tivermos IDs numéricos
+    // 🔹 aplica cansaço na arena
     const tasks = [];
     if (Number.isInteger(atacanteDbId)) {
-      tasks.push(pool.query(`
-        INSERT INTO arena (alunoId, cansadoAte)
-        VALUES ($1, $2)
-        ON CONFLICT (alunoId) DO UPDATE SET cansadoAte = $2
-      `, [atacanteDbId, cansadoAte]));
+      tasks.push(pool.query(
+        `INSERT INTO arena (alunoId, cansadoAte)
+         VALUES ($1, $2)
+         ON CONFLICT (alunoId) DO UPDATE SET cansadoAte = $2`,
+        [atacanteDbId, cansadoAte]
+      ));
     }
     if (Number.isInteger(alvoDbId)) {
-      tasks.push(pool.query(`
-        INSERT INTO arena (alunoId, cansadoAte)
-        VALUES ($1, $2)
-        ON CONFLICT (alunoId) DO UPDATE SET cansadoAte = $2
-      `, [alvoDbId, cansadoAte]));
+      tasks.push(pool.query(
+        `INSERT INTO arena (alunoId, cansadoAte)
+         VALUES ($1, $2)
+         ON CONFLICT (alunoId) DO UPDATE SET cansadoAte = $2`,
+        [alvoDbId, cansadoAte]
+      ));
     }
     await Promise.all(tasks);
 
-    // transferir gold internamente nos arrays
+    // 🔹 transfere gold internamente
     if (!empate && goldTransferido > 0) {
       if (vencedor === atacanteId) {
         atacanteArray[atacanteIndex].gold = (atacanteData.gold || 0) + goldTransferido;
@@ -781,7 +800,7 @@ app.post('/api/arena/batalha', authenticateToken, async (req, res) => {
       }
     }
 
-    // salva arrays atualizados nos professores corretos
+    // 🔹 salva arrays atualizados
     if (atacanteProfessorId) {
       await pool.query(`UPDATE alunos SET data = $1 WHERE userId = $2`, [JSON.stringify(atacanteArray), atacanteProfessorId]);
     }
@@ -789,7 +808,7 @@ app.post('/api/arena/batalha', authenticateToken, async (req, res) => {
       await pool.query(`UPDATE alunos SET data = $1 WHERE userId = $2`, [JSON.stringify(alvoArray), alvoProfessorId]);
     }
 
-    // grava logs: inclua idNum e ctr para robustez
+    // 🔹 grava logs
     if (!fs.existsSync(logsFile)) fs.writeFileSync(logsFile, '[]', 'utf8');
     const logs = JSON.parse(fs.readFileSync(logsFile, 'utf8'));
     logs.push({
@@ -812,7 +831,7 @@ app.post('/api/arena/batalha', authenticateToken, async (req, res) => {
     });
     fs.writeFileSync(logsFile, JSON.stringify(logs, null, 2));
 
-    // resposta: vencedor numeric quando possível
+    // 🔹 resposta final
     res.json({
       success: true,
       vencedor,
@@ -828,6 +847,7 @@ app.post('/api/arena/batalha', authenticateToken, async (req, res) => {
     res.status(500).json({ error: 'Erro interno na batalha.' });
   }
 });
+
 
 
 // -------------------------------

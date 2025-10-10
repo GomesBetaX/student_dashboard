@@ -72,7 +72,6 @@ async function setupArenaAluno() {
               ${statusAdversario}
             </div>
             <div class="mt-2">${slotHTML}</div>
-            // dentro do map quando cria o HTML do adversário, substitua data-id pelo idSeguro
             <button class="btn btn-sm btn-${estaCansado ? 'secondary' : 'danger'} mt-3 btn-batalhar" 
                     data-id="${a.idSeguro}" ${estaCansado ? 'disabled' : ''}>
               ${estaCansado ? 'Cansado' : 'BATALHAR'}
