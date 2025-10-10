@@ -1,9 +1,10 @@
 // loja-aluno.js
 
 // 🔗 Detecta ambiente automaticamente
-const API_BASE = window.location.origin.includes('localhost')
+/** const API_BASE = window.location.origin.includes('localhost')
   ? 'http://localhost:3000'
   : 'https://student-dashboard-t5y0.onrender.com';
+**/
 
 // 🚀 Inicializa loja
 function setupLojaAluno() {
