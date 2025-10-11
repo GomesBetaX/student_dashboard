@@ -108,36 +108,82 @@ async function setupArenaAluno() {
 }
 
 // Inicia batalha (tudo no backend)
-async function iniciarBatalha(alvoId) {
+// Atualiza arena após batalha (recarrega status e lista)
+async function atualizarArenaDepoisDaBatalha() {
   try {
-    const res = await fetch('/api/arena/batalha', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${localStorage.getItem('token')}`
-      },
-      body: JSON.stringify({ alvoId })
+    // Recarrega meu status de cansaço
+    const meuEstadoRes = await fetch('/api/arena/meu-estado', {
+      headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
     });
+    const meuEstado = await meuEstadoRes.json();
+    const statusTopo = document.getElementById('statusTopoArena');
+    const agora = new Date();
 
-    if (!res.ok) {
-      const err = await res.json();
-      throw new Error(err.error || 'Erro ao iniciar batalha.');
+    if (statusTopo) {
+      if (meuEstado.cansadoAte && new Date(meuEstado.cansadoAte) > agora) {
+        const fim = new Date(meuEstado.cansadoAte);
+        statusTopo.innerHTML = `⚠️ Você está cansado até ${fim.toLocaleTimeString()}`;
+        statusTopo.className = 'text-danger mb-3';
+      } else {
+        statusTopo.innerHTML = '✅ Pronto para batalhar!';
+        statusTopo.className = 'text-success mb-3';
+      }
     }
 
-    const resultado = await res.json();
-    await mostrarAnimacaoBatalha(
-      resultado.dadoAtacante,
-      resultado.dadoAlvo,
-      resultado.danoAtacante,
-      resultado.danoAlvo
-    );
-    mostrarResultadoFinal(resultado);
+    // Recarrega a lista de adversários
+    const res = await fetch('/api/arena/alunos', {
+      headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
+    });
+    const adversarios = await res.json();
+
+    const container = document.getElementById('listaAlunosArena');
+    if (!container) return;
+
+    const agora2 = new Date();
+    container.innerHTML = adversarios.map(a => {
+      const poder = Object.values(a.equipamentos).reduce((s, i) => s + (i?.power || 0), 0);
+      const estaCansado = a.cansadoAte && new Date(a.cansadoAte) > agora2;
+      const statusAdversario = estaCansado
+        ? '<span class="badge bg-warning text-dark">Cansado</span>'
+        : '<span class="badge bg-success">Disponível</span>';
+      const slots = ['cabeca', 'camisa', 'calca', 'pes', 'artefato'];
+      const slotHTML = slots.map(slot => {
+        const item = a.equipamentos[slot];
+        return item
+          ? `<img src="${item.icone}" width="32" height="32" class="mx-1 rounded" title="${item.nome || 'Item'} (+${item.power || 0})">`
+          : `<div class="d-inline-block mx-1" style="width:32px;height:32px;background:#eee;border-radius:4px;"></div>`;
+      }).join('');
+      return `
+        <div class="col-md-4">
+          <div class="card p-3 text-center shadow-sm">
+            <img src="${a.pic}" class="rounded-circle mx-auto mb-2" width="60" height="60" style="object-fit: cover;">
+            <h6 class="mb-1">${a.nome}</h6>
+            <small class="text-muted">${a.ctr}</small>
+            <div class="mt-2">
+              <span class="badge bg-warning text-dark">🪙 ${a.gold}</span>
+              <span class="badge bg-primary ms-1">⚔️ ${poder}</span>
+              ${statusAdversario}
+            </div>
+            <div class="mt-2">${slotHTML}</div>
+            <button class="btn btn-sm btn-${estaCansado ? 'secondary' : 'danger'} mt-3 btn-batalhar" 
+                    data-id="${a.idSeguro}" ${estaCansado ? 'disabled' : ''}>
+              ${estaCansado ? 'Cansado' : 'BATALHAR'}
+            </button>
+          </div>
+        </div>
+      `;
+    }).join('');
+
+    // Reativa eventos
+    document.querySelectorAll('.btn-batalhar').forEach(btn => {
+      btn.addEventListener('click', () => iniciarBatalha(btn.dataset.id));
+    });
 
   } catch (err) {
-    console.error('Erro na batalha:', err);
-    showToast(`❌ ${err.message}`);
+    console.error('Erro ao atualizar arena:', err);
   }
 }
+
 
 // Animação da batalha
 async function mostrarAnimacaoBatalha(d1, d2, dmg1, dmg2) {
