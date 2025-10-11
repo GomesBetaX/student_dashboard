@@ -108,6 +108,47 @@ async function setupArenaAluno() {
 }
 
 // Inicia batalha (tudo no backend)
+// Inicia batalha (tudo no backend)
+async function iniciarBatalha(alvoId) {
+  try {
+    const res = await fetch('/api/arena/batalha', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${localStorage.getItem('token')}`
+      },
+      body: JSON.stringify({ alvoId })
+    });
+
+    if (!res.ok) {
+      const err = await res.json();
+      throw new Error(err.error || 'Erro ao iniciar batalha.');
+    }
+
+    const resultado = await res.json();
+
+    // Mostra animação
+    await mostrarAnimacaoBatalha(
+      resultado.dadoAtacante,
+      resultado.dadoAlvo,
+      resultado.danoAtacante,
+      resultado.danoAlvo
+    );
+
+    // Mostra resultado
+    mostrarResultadoFinal(resultado);
+
+    // ✅ Atualiza automaticamente status de cansaço e botões
+    // (para refletir o novo estado “Cansado”)
+    await atualizarArenaDepoisDaBatalha();
+
+  } catch (err) {
+    console.error('Erro na batalha:', err);
+    showToast(`❌ ${err.message}`);
+  }
+}
+
+// Atualiza a arena depois da batalha
 // Atualiza arena após batalha (recarrega status e lista)
 async function atualizarArenaDepoisDaBatalha() {
   try {
